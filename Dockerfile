@@ -1,8 +1,8 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 
-# Install git and ca-certificates (needed for go mod download)
-RUN apk add --no-cache git ca-certificates
+# Install git, openssh-client and ca-certificates
+RUN apk add --no-cache git openssh-client ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -10,11 +10,15 @@ WORKDIR /app
 # Copy go mod files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Setup SSH for private repos
+RUN mkdir -p /root/.ssh
+RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 # Copy source code
 COPY . .
+
+# Download dependencies (SSH agent will be mounted from host)
+RUN --mount=type=ssh go mod download
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
