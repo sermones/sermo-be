@@ -10,4 +10,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 인증 라우터 설정
 	SetupAuthRoutes(app)
+
+	// 사용자 라우터 설정
+	SetupUserRoutes(app)
 }

@@ -12,6 +12,7 @@ import (
 // DTO 정의
 type SignUpRequest struct {
 	Username string `json:"username"`
+	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
@@ -37,6 +38,12 @@ func SignUp(c *fiber.Ctx) error {
 		})
 	}
 
+	if len(req.Name) < 1 || len(req.Name) > 100 {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Name must be between 1 and 100 characters",
+		})
+	}
+
 	if len(req.Password) < 6 {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 			"error": "Password must be at least 6 characters",
@@ -58,6 +65,7 @@ func SignUp(c *fiber.Ctx) error {
 	user := &models.User{
 		ID:       uuid.New(),
 		Username: req.Username,
+		Name:     req.Name,
 		Password: req.Password, // TODO: 실제로는 해시화 필요
 	}
 
