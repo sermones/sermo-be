@@ -15,6 +15,12 @@ func SetupImageRoutes(app *fiber.App) {
 	// 이미지 업로드
 	imageGroup.Post("/upload", image.UploadImage)
 
+	// 이미지 조회
+	imageGroup.Get("/:image_id", image.GetImage)
+
+	// 이미지 다운로드
+	imageGroup.Get("/:image_id/download", image.DownloadImage)
+
 	// 이미지 삭제
 	imageGroup.Delete("/delete", image.DeleteImage)
 }

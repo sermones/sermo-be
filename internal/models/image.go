@@ -13,12 +13,12 @@ type Image struct {
 	FileName  string    `json:"file_name" gorm:"type:varchar(255);not null"`
 	FileSize  int64     `json:"file_size" gorm:"not null"`
 	MimeType  string    `json:"mime_type" gorm:"type:varchar(100);not null"`
-	URL       string    `json:"url" gorm:"type:text;not null"`
+	FileKey   string    `json:"file_key" gorm:"type:text;not null"` // R2 파일 키 (images/userid/filename)
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-func NewImage(userID, fileName, mimeType, url string, fileSize int64) *Image {
+func NewImage(userID, fileName, mimeType, fileKey string, fileSize int64) *Image {
 	now := time.Now()
 	return &Image{
 		ID:        uuid.New(),
@@ -26,7 +26,7 @@ func NewImage(userID, fileName, mimeType, url string, fileSize int64) *Image {
 		FileName:  fileName,
 		FileSize:  fileSize,
 		MimeType:  mimeType,
-		URL:       url,
+		FileKey:   fileKey,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

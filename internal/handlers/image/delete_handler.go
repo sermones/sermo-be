@@ -2,7 +2,6 @@ package image
 
 import (
 	"fmt"
-	"strings"
 
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
@@ -79,17 +78,10 @@ func DeleteImage(c *fiber.Ctx) error {
 	// R2 클라이언트 가져오기
 	r2Client := middleware.GetR2Client(c)
 
-	// R2에서 파일 삭제 (키는 URL에서 추출)
-	// URL: https://035ea6d0a6159a3e4c6f41ded546d78d.r2.cloudflarestorage.com/images/userid/filename.jpg
-	// 키: images/userid/filename.jpg
-	urlParts := strings.Split(image.URL, "/")
-	if len(urlParts) >= 4 {
-		key := strings.Join(urlParts[3:], "/") // images/userid/filename.jpg 부분 추출
-
-		if err := r2Client.DeleteFile(c.Context(), key); err != nil {
-			// R2 삭제 실패해도 DB는 삭제 (일관성 유지)
-			fmt.Printf("R2 파일 삭제 실패: %v\n", err)
-		}
+	// R2에서 파일 삭제 (FileKey 사용)
+	if err := r2Client.DeleteFile(c.Context(), image.FileKey); err != nil {
+		// R2 삭제 실패해도 DB는 삭제 (일관성 유지)
+		fmt.Printf("R2 파일 삭제 실패: %v\n", err)
 	}
 
 	// DB에서 이미지 정보 삭제

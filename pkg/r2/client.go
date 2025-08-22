@@ -99,11 +99,11 @@ func (c *Client) DeleteFile(ctx context.Context, key string) error {
 	return nil
 }
 
-// GeneratePresignedURL 프리사인드 URL 생성
+// GeneratePresignedURL 프리사인드 URL 생성 (다운로드용)
 func (c *Client) GeneratePresignedURL(ctx context.Context, key string, expires time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(c.s3Client)
 
-	request, err := presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
+	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(c.bucket),
 		Key:    aws.String(key),
 	}, s3.WithPresignExpires(expires))

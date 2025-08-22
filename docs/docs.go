@@ -245,6 +245,136 @@ const docTemplate = `{
                 }
             }
         },
+        "/image/{image_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "이미지 정보를 조회하고 프리사인드 URL을 생성합니다",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "이미지 조회",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "이미지 ID",
+                        "name": "image_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/image.GetImageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/image/{image_id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "이미지를 직접 다운로드합니다",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "image"
+                ],
+                "summary": "이미지 다운로드",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "이미지 ID",
+                        "name": "image_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/user/profile": {
             "get": {
                 "security": [
@@ -363,6 +493,21 @@ const docTemplate = `{
                 }
             }
         },
+        "image.GetImageResponse": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "$ref": "#/definitions/models.Image"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "프리사인드 URL (선택사항)",
+                    "type": "string"
+                }
+            }
+        },
         "image.UploadImageResponse": {
             "type": "object",
             "properties": {
@@ -380,6 +525,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "file_key": {
+                    "description": "R2 파일 키 (images/userid/filename)",
+                    "type": "string"
+                },
                 "file_name": {
                     "type": "string"
                 },
@@ -393,9 +542,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                },
-                "url": {
                     "type": "string"
                 },
                 "user_id": {

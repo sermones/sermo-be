@@ -91,15 +91,12 @@ func UploadImage(c *fiber.Ctx) error {
 		})
 	}
 
-	// R2 URL 생성 (public으로 설정)
-	url := fmt.Sprintf("%s/%s", strings.TrimSuffix(r2Client.GetEndpoint(), "/"), key)
-
-	// DB에 이미지 정보 저장
+	// DB에 이미지 정보 저장 (파일 키만 저장)
 	image := models.NewImage(
 		userUUID,
 		file.Filename,
 		file.Header.Get("Content-Type"),
-		url,
+		key, // 파일 키만 저장 (images/userid/filename)
 		file.Size,
 	)
 

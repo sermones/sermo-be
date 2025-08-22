@@ -47,6 +47,16 @@ definitions:
       message:
         type: string
     type: object
+  image.GetImageResponse:
+    properties:
+      image:
+        $ref: '#/definitions/models.Image'
+      message:
+        type: string
+      url:
+        description: 프리사인드 URL (선택사항)
+        type: string
+    type: object
   image.UploadImageResponse:
     properties:
       image:
@@ -58,6 +68,9 @@ definitions:
     properties:
       created_at:
         type: string
+      file_key:
+        description: R2 파일 키 (images/userid/filename)
+        type: string
       file_name:
         type: string
       file_size:
@@ -67,8 +80,6 @@ definitions:
       mime_type:
         type: string
       updated_at:
-        type: string
-      url:
         type: string
       user_id:
         type: string
@@ -162,6 +173,92 @@ paths:
       summary: 회원가입
       tags:
       - Authentication
+  /image/{image_id}:
+    get:
+      consumes:
+      - application/json
+      description: 이미지 정보를 조회하고 프리사인드 URL을 생성합니다
+      parameters:
+      - description: 이미지 ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/image.GetImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 이미지 조회
+      tags:
+      - image
+  /image/{image_id}/download:
+    get:
+      consumes:
+      - application/json
+      description: 이미지를 직접 다운로드합니다
+      parameters:
+      - description: 이미지 ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 이미지 다운로드
+      tags:
+      - image
   /image/delete:
     delete:
       consumes:
