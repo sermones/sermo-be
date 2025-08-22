@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	"sermo-be/internal/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -37,8 +39,7 @@ func Connect(config *Config) error {
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info), // 개발환경에서는 SQL 로그 출력
 		NowFunc: func() time.Time {
-			loc, _ := time.LoadLocation("Asia/Seoul")
-			return time.Now().In(loc)
+			return time.Now().UTC() // UTC로 저장하고 GORM이 자동으로 변환
 		},
 	})
 
@@ -73,17 +74,23 @@ func Close() error {
 	return nil
 }
 
-// AutoMigrate 데이터베이스 마이그레이션
-func AutoMigrate(models ...interface{}) error {
+// RunMigrations 데이터베이스 마이그레이션 실행
+func RunMigrations() error {
 	if DB == nil {
 		return fmt.Errorf("database not connected")
 	}
 
-	err := DB.AutoMigrate(models...)
-	if err != nil {
-		return fmt.Errorf("failed to auto migrate: %v", err)
+	// 마이그레이션할 모델들
+	models := []interface{}{
+		&models.User{},
+		&models.Image{},
 	}
 
-	log.Println("✅ Database migration completed")
+	err := DB.AutoMigrate(models...)
+	if err != nil {
+		return fmt.Errorf("failed to run migrations: %v", err)
+	}
+
+	log.Println("✅ Database migrations completed successfully")
 	return nil
 }

@@ -2,9 +2,9 @@ basePath: /
 definitions:
   auth.LoginRequest:
     properties:
-      password:
+      id:
         type: string
-      username:
+      password:
         type: string
     type: object
   auth.LoginResponse:
@@ -21,16 +21,54 @@ definitions:
     type: object
   auth.SignUpRequest:
     properties:
-      name:
+      id:
+        type: string
+      nickname:
         type: string
       password:
-        type: string
-      username:
         type: string
     type: object
   auth.SignUpResponse:
     properties:
       message:
+        type: string
+      user_id:
+        type: string
+    type: object
+  image.DeleteImageRequest:
+    properties:
+      image_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  image.DeleteImageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  image.UploadImageResponse:
+    properties:
+      image:
+        $ref: '#/definitions/models.Image'
+      message:
+        type: string
+    type: object
+  models.Image:
+    properties:
+      created_at:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: string
+      mime_type:
+        type: string
+      updated_at:
+        type: string
+      url:
         type: string
       user_id:
         type: string
@@ -41,9 +79,9 @@ definitions:
         type: string
       id:
         type: string
-      name:
+      nickname:
         type: string
-      username:
+      uuid:
         type: string
     type: object
 host: localhost:3000
@@ -124,6 +162,79 @@ paths:
       summary: 회원가입
       tags:
       - Authentication
+  /image/delete:
+    delete:
+      consumes:
+      - application/json
+      description: 사용자 이미지를 삭제합니다
+      parameters:
+      - description: 삭제 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/image.DeleteImageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/image.DeleteImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 이미지 삭제
+      tags:
+      - image
+  /image/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 사용자 이미지를 업로드하고 DB에 정보를 저장합니다
+      parameters:
+      - description: 사용자 ID
+        in: formData
+        name: user_id
+        required: true
+        type: string
+      - description: 이미지 파일
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/image.UploadImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 이미지 업로드
+      tags:
+      - image
   /user/profile:
     get:
       consumes:

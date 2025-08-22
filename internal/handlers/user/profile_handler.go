@@ -10,9 +10,9 @@ import (
 
 // ProfileResponse 사용자 프로필 응답
 type ProfileResponse struct {
+	UUID      string `json:"uuid"`
 	ID        string `json:"id"`
-	Username  string `json:"username"`
-	Name      string `json:"name"`
+	Nickname  string `json:"nickname"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -43,9 +43,9 @@ func GetProfile(c *fiber.Ctx) error {
 	}
 
 	response := ProfileResponse{
-		ID:        user.ID.String(),
-		Username:  user.Username,
-		Name:      user.Name,
+		UUID:      user.UUID.String(),
+		ID:        user.ID,
+		Nickname:  user.Nickname,
 		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 

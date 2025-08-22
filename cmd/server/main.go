@@ -30,7 +30,6 @@ import (
 	_ "sermo-be/docs"
 	"sermo-be/internal/config"
 	"sermo-be/internal/middleware"
-	"sermo-be/internal/models"
 	"sermo-be/internal/routes"
 	"sermo-be/pkg/database"
 
@@ -58,7 +57,8 @@ func main() {
 		log.Fatalf("데이터베이스 연결 실패: %v", err)
 	}
 
-	if err := database.AutoMigrate(&models.User{}); err != nil {
+	// 데이터베이스 마이그레이션 실행
+	if err := database.RunMigrations(); err != nil {
 		log.Fatalf("데이터베이스 마이그레이션 실패: %v", err)
 	}
 
@@ -88,6 +88,7 @@ func main() {
 	// DI 미들웨어 설정
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
+	app.Use(middleware.R2Middleware(cfg))
 
 	// 라우터 설정
 	routes.SetupRoutes(app)

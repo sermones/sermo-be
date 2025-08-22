@@ -7,6 +7,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	R2       R2Config
 }
 
 type ServerConfig struct {
@@ -23,6 +24,13 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type R2Config struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Endpoint        string
+	Bucket          string
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -36,6 +44,12 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "password"),
 			DBName:   getEnv("DB_NAME", "sermo"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		R2: R2Config{
+			AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", "7d72013b97878d91c8d4b44b7515c9f9"),
+			SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", "0cef3b206ee353b43f988558ae07808a3ad46a12a22463c2b17bbbfde7908cdb"),
+			Endpoint:        getEnv("R2_ENDPOINT", "https://035ea6d0a6159a3e4c6f41ded546d78d.r2.cloudflarestorage.com"),
+			Bucket:          getEnv("R2_BUCKET", "sermo-be"),
 		},
 	}
 }

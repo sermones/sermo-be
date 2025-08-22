@@ -6,13 +6,12 @@ import (
 	"sermo-be/internal/models"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 // DTO 정의
 type SignUpRequest struct {
-	Username string `json:"username"`
-	Name     string `json:"name"`
+	ID       string `json:"id"`
+	Nickname string `json:"nickname"`
 	Password string `json:"password"`
 }
 
@@ -42,15 +41,15 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// 유효성 검사
-	if len(req.Username) < 3 || len(req.Username) > 20 {
+	if len(req.ID) < 3 || len(req.ID) > 20 {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Username must be between 3 and 20 characters",
+			"error": "ID must be between 3 and 20 characters",
 		})
 	}
 
-	if len(req.Name) < 1 || len(req.Name) > 100 {
+	if len(req.Nickname) < 1 || len(req.Nickname) > 100 {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Name must be between 1 and 100 characters",
+			"error": "Nickname must be between 1 and 100 characters",
 		})
 	}
 
@@ -65,19 +64,14 @@ func SignUp(c *fiber.Ctx) error {
 
 	// 데이터베이스에서 중복 사용자 체크
 	var existingUser models.User
-	if err := db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
+	if err := db.Where("id = ?", req.ID).First(&existingUser).Error; err == nil {
 		return c.Status(http.StatusConflict).JSON(fiber.Map{
-			"error": "Username already exists",
+			"error": "ID already exists",
 		})
 	}
 
 	// 새 사용자 생성
-	user := &models.User{
-		ID:       uuid.New(),
-		Username: req.Username,
-		Name:     req.Name,
-		Password: req.Password, // TODO: 실제로는 해시화 필요
-	}
+	user := models.NewUser(req.ID, req.Nickname, req.Password)
 
 	// 데이터베이스에 사용자 저장
 	if err := db.Create(user).Error; err != nil {
@@ -88,7 +82,7 @@ func SignUp(c *fiber.Ctx) error {
 
 	response := SignUpResponse{
 		Message: "User created successfully",
-		UserID:  user.ID.String(),
+		UserID:  user.UUID.String(),
 	}
 
 	return c.Status(http.StatusCreated).JSON(response)

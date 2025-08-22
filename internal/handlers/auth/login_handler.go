@@ -11,7 +11,7 @@ import (
 
 // DTO 정의
 type LoginRequest struct {
-	Username string `json:"username"`
+	ID       string `json:"id"`
 	Password string `json:"password"`
 }
 
@@ -44,9 +44,9 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// 유효성 검사
-	if req.Username == "" || req.Password == "" {
+	if req.ID == "" || req.Password == "" {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Username and password are required",
+			"error": "ID and password are required",
 		})
 	}
 
@@ -55,7 +55,7 @@ func Login(c *fiber.Ctx) error {
 
 	// 데이터베이스에서 사용자 조회
 	var user models.User
-	if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+	if err := db.Where("id = ?", req.ID).First(&user).Error; err != nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid credentials",
 		})
@@ -69,7 +69,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// JWT 토큰 생성
-	token, err := jwt.GenerateToken(user.ID.String())
+	token, err := jwt.GenerateToken(user.UUID.String())
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate token",
@@ -82,8 +82,8 @@ func Login(c *fiber.Ctx) error {
 			ID       string `json:"id"`
 			Username string `json:"username"`
 		}{
-			ID:       user.ID.String(),
-			Username: user.Username,
+			ID:       user.UUID.String(),
+			Username: user.ID,
 		},
 	}
 
