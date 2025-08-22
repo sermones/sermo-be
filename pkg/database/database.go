@@ -24,7 +24,7 @@ type Config struct {
 
 // Connect 데이터베이스 연결
 func Connect(config *Config) error {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Seoul",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		config.Host,
 		config.User,
 		config.Password,
@@ -37,7 +37,8 @@ func Connect(config *Config) error {
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info), // 개발환경에서는 SQL 로그 출력
 		NowFunc: func() time.Time {
-			return time.Now().Local()
+			loc, _ := time.LoadLocation("Asia/Seoul")
+			return time.Now().In(loc)
 		},
 	})
 
