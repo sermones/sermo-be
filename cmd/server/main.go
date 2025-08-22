@@ -1,3 +1,24 @@
+// @title Sermo Backend API
+// @version 1.0
+// @description Sermo Backend API 서버입니다.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:3000
+// @BasePath /
+// @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT 토큰을 사용한 Bearer 인증
+
 package main
 
 import (
@@ -6,6 +27,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "sermo-be/docs"
 	"sermo-be/internal/config"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
@@ -16,6 +38,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	swagger "github.com/swaggo/fiber-swagger"
 )
 
 func main() {
@@ -66,6 +89,9 @@ func main() {
 	// DI 미들웨어 설정
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
+
+	// Swagger UI 설정
+	app.Get("/swagger/*", swagger.FiberWrapHandler())
 
 	// 라우터 설정
 	routes.SetupRoutes(app)

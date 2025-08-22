@@ -24,6 +24,16 @@ type LoginResponse struct {
 }
 
 // Login 로그인 핸들러
+// @Summary 로그인
+// @Description 사용자 인증 후 JWT 토큰을 반환합니다.
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "로그인 정보"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/login [post]
 func Login(c *fiber.Ctx) error {
 	var req LoginRequest
 

@@ -13,6 +13,7 @@ help:
 	@echo "  logs-db   - Show logs from PostgreSQL only"
 	@echo "  test      - Run tests"
 	@echo "  dev       - Run in development mode (go run)"
+	@echo "  swagger   - Generate Swagger documentation"
 
 # Build Docker images
 build:
@@ -57,6 +58,12 @@ dev:
 
 # Build and run
 build-run: build run
+
+# Generate Swagger documentation
+swagger:
+	/Users/chungjung-mac-m4/.asdf/installs/golang/1.25.0/bin/swag init -g cmd/server/main.go -o docs
+	@echo "✅ Swagger documentation generated successfully!"
+	@echo "📖 View docs at: docs/index.html"
 
 # Restart services
 restart: stop run

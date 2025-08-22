@@ -17,6 +17,16 @@ type ProfileResponse struct {
 }
 
 // GetProfile 사용자 프로필 조회 (인증 필요)
+// @Summary 사용자 프로필 조회
+// @Description 현재 인증된 사용자의 프로필 정보를 조회합니다.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} ProfileResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /user/profile [get]
 func GetProfile(c *fiber.Ctx) error {
 	// context에서 사용자 ID 가져오기
 	userID := middleware.GetUserID(c)

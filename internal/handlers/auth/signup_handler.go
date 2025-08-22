@@ -22,6 +22,16 @@ type SignUpResponse struct {
 }
 
 // SignUp 회원가입 핸들러
+// @Summary 회원가입
+// @Description 새로운 사용자 계정을 생성합니다.
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body SignUpRequest true "회원가입 정보"
+// @Success 201 {object} SignUpResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 409 {object} map[string]interface{}
+// @Router /auth/signup [post]
 func SignUp(c *fiber.Ctx) error {
 	var req SignUpRequest
 
