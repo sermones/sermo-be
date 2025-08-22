@@ -16,4 +16,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 사용자 라우터 설정
 	SetupUserRoutes(app)
+
+	// 이미지 라우터 설정
+	SetupImageRoutes(app)
 }

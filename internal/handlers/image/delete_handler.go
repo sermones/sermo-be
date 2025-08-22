@@ -14,7 +14,6 @@ import (
 
 // DeleteImageRequest 이미지 삭제 요청
 type DeleteImageRequest struct {
-	UserID  string `json:"user_id"`
 	ImageID string `json:"image_id"`
 }
 
@@ -29,9 +28,11 @@ type DeleteImageResponse struct {
 // @Tags image
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param request body DeleteImageRequest true "삭제 요청"
 // @Success 200 {object} DeleteImageResponse
 // @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /image/delete [delete]
@@ -45,9 +46,9 @@ func DeleteImage(c *fiber.Ctx) error {
 	}
 
 	// 필수 필드 검증
-	if req.UserID == "" || req.ImageID == "" {
+	if req.ImageID == "" {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "사용자 ID와 이미지 ID가 필요합니다",
+			"error": "이미지 ID가 필요합니다",
 		})
 	}
 
@@ -59,9 +60,17 @@ func DeleteImage(c *fiber.Ctx) error {
 		})
 	}
 
+	// JWT 토큰에서 사용자 UUID 추출
+	userUUID := middleware.GetUserUUID(c)
+	if userUUID == "" {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "인증이 필요합니다",
+		})
+	}
+
 	// DB에서 이미지 정보 조회
 	var image models.Image
-	if err := database.DB.Where("id = ? AND user_id = ?", imageUUID, req.UserID).First(&image).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ?", imageUUID, userUUID).First(&image).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{
 			"error": "이미지를 찾을 수 없습니다",
 		})

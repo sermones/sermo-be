@@ -10,14 +10,14 @@ import (
 var jwtSecret = []byte("your-secret-key-change-in-production")
 
 type Claims struct {
-	UserID string `json:"user_id"`
+	UUID string `json:"uuid"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken JWT 토큰 생성
-func GenerateToken(userID string) (string, error) {
+func GenerateToken(uuid string) (string, error) {
 	claims := Claims{
-		UserID: userID,
+		UUID: uuid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24시간 유효
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

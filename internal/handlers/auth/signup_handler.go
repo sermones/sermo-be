@@ -17,7 +17,7 @@ type SignUpRequest struct {
 
 type SignUpResponse struct {
 	Message string `json:"message"`
-	UserID  string `json:"user_id"`
+	UUID    string `json:"uuid"`
 }
 
 // SignUp 회원가입 핸들러
@@ -82,7 +82,7 @@ func SignUp(c *fiber.Ctx) error {
 
 	response := SignUpResponse{
 		Message: "User created successfully",
-		UserID:  user.UUID.String(),
+		UUID:    user.UUID.String(),
 	}
 
 	return c.Status(http.StatusCreated).JSON(response)

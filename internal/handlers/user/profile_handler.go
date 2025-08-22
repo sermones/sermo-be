@@ -29,14 +29,14 @@ type ProfileResponse struct {
 // @Router /user/profile [get]
 func GetProfile(c *fiber.Ctx) error {
 	// context에서 사용자 ID 가져오기
-	userID := middleware.GetUserID(c)
+	userUUID := middleware.GetUserUUID(c)
 
 	// context에서 database 가져오기
 	db := middleware.GetDB(c)
 
 	// 데이터베이스에서 사용자 조회
 	var user models.User
-	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+	if err := db.Where("uuid = ?", userUUID).First(&user).Error; err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})

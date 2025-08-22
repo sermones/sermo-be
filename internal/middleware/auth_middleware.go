@@ -42,17 +42,17 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		// context에 사용자 ID 저장
-		c.Locals("user_id", claims.UserID)
+		// context에 사용자 UUID 저장
+		c.Locals("user_uuid", claims.UUID)
 		c.Locals("user_claims", claims)
 
 		return c.Next()
 	}
 }
 
-// GetUserID context에서 사용자 ID 가져오기
-func GetUserID(c *fiber.Ctx) string {
-	return c.Locals("user_id").(string)
+// GetUserUUID context에서 사용자 UUID 가져오기
+func GetUserUUID(c *fiber.Ctx) string {
+	return c.Locals("user_uuid").(string)
 }
 
 // GetUserClaims context에서 사용자 클레임 가져오기

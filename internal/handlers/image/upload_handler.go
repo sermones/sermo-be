@@ -15,7 +15,7 @@ import (
 
 // UploadImageRequest 이미지 업로드 요청
 type UploadImageRequest struct {
-	UserID string `form:"user_id"`
+	// UserID는 JWT 토큰에서 자동으로 추출됩니다
 }
 
 // UploadImageResponse 이미지 업로드 응답
@@ -30,18 +30,19 @@ type UploadImageResponse struct {
 // @Tags image
 // @Accept multipart/form-data
 // @Produce json
-// @Param user_id formData string true "사용자 ID"
+// @Security BearerAuth
 // @Param file formData file true "이미지 파일"
 // @Success 200 {object} UploadImageResponse
 // @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /image/upload [post]
 func UploadImage(c *fiber.Ctx) error {
-	// 사용자 ID 파싱
-	userID := c.FormValue("user_id")
-	if userID == "" {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "사용자 ID가 필요합니다",
+	// JWT 토큰에서 사용자 UUID 추출
+	userUUID := middleware.GetUserUUID(c)
+	if userUUID == "" {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "인증이 필요합니다",
 		})
 	}
 
@@ -63,11 +64,11 @@ func UploadImage(c *fiber.Ctx) error {
 	// R2 클라이언트 가져오기
 	r2Client := middleware.GetR2Client(c)
 
-	// 파일 키 생성 (사용자ID/타임스탬프_파일명)
+	// 파일 키 생성 (사용자UUID/타임스탬프_파일명)
 	timestamp := time.Now().Unix()
 	fileExt := filepath.Ext(file.Filename)
 	fileName := fmt.Sprintf("%d_%s", timestamp, strings.TrimSuffix(file.Filename, fileExt))
-	key := fmt.Sprintf("images/%s/%s%s", userID, fileName, fileExt)
+	key := fmt.Sprintf("images/%s/%s%s", userUUID, fileName, fileExt)
 
 	// 파일을 R2에 업로드
 	fileReader, err := file.Open()
@@ -89,7 +90,7 @@ func UploadImage(c *fiber.Ctx) error {
 
 	// DB에 이미지 정보 저장
 	image := models.NewImage(
-		userID,
+		userUUID,
 		file.Filename,
 		file.Header.Get("Content-Type"),
 		url,

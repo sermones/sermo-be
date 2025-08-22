@@ -17,6 +17,8 @@ definitions:
             type: string
           username:
             type: string
+          uuid:
+            type: string
         type: object
     type: object
   auth.SignUpRequest:
@@ -32,14 +34,12 @@ definitions:
     properties:
       message:
         type: string
-      user_id:
+      uuid:
         type: string
     type: object
   image.DeleteImageRequest:
     properties:
       image_id:
-        type: string
-      user_id:
         type: string
     type: object
   image.DeleteImageResponse:
@@ -186,6 +186,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
         "404":
           description: Not Found
           schema:
@@ -196,6 +201,8 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: 이미지 삭제
       tags:
       - image
@@ -205,11 +212,6 @@ paths:
       - multipart/form-data
       description: 사용자 이미지를 업로드하고 DB에 정보를 저장합니다
       parameters:
-      - description: 사용자 ID
-        in: formData
-        name: user_id
-        required: true
-        type: string
       - description: 이미지 파일
         in: formData
         name: file
@@ -227,11 +229,18 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties: true
             type: object
+      security:
+      - BearerAuth: []
       summary: 이미지 업로드
       tags:
       - image

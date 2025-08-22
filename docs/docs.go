@@ -122,6 +122,11 @@ const docTemplate = `{
         },
         "/image/delete": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "사용자 이미지를 삭제합니다",
                 "consumes": [
                     "application/json"
@@ -158,6 +163,13 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -177,6 +189,11 @@ const docTemplate = `{
         },
         "/image/upload": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "사용자 이미지를 업로드하고 DB에 정보를 저장합니다",
                 "consumes": [
                     "multipart/form-data"
@@ -189,13 +206,6 @@ const docTemplate = `{
                 ],
                 "summary": "이미지 업로드",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "사용자 ID",
-                        "name": "user_id",
-                        "in": "formData",
-                        "required": true
-                    },
                     {
                         "type": "file",
                         "description": "이미지 파일",
@@ -213,6 +223,13 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -297,6 +314,9 @@ const docTemplate = `{
                         },
                         "username": {
                             "type": "string"
+                        },
+                        "uuid": {
+                            "type": "string"
                         }
                     }
                 }
@@ -322,7 +342,7 @@ const docTemplate = `{
                 "message": {
                     "type": "string"
                 },
-                "user_id": {
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -331,9 +351,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "image_id": {
-                    "type": "string"
-                },
-                "user_id": {
                     "type": "string"
                 }
             }

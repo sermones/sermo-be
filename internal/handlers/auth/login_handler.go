@@ -18,6 +18,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Token string `json:"token"`
 	User  struct {
+		UUID     string `json:"uuid"`
 		ID       string `json:"id"`
 		Username string `json:"username"`
 	} `json:"user"`
@@ -79,11 +80,13 @@ func Login(c *fiber.Ctx) error {
 	response := LoginResponse{
 		Token: token,
 		User: struct {
+			UUID     string `json:"uuid"`
 			ID       string `json:"id"`
 			Username string `json:"username"`
 		}{
-			ID:       user.UUID.String(),
-			Username: user.ID,
+			UUID:     user.UUID.String(),
+			ID:       user.ID,
+			Username: user.Nickname,
 		},
 	}
 

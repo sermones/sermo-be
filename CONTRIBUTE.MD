@@ -129,12 +129,13 @@ type ProfileResponse struct {
 
 ### 1. 인증 미들웨어 (AuthMiddleware)
 - **위치**: `internal/middleware/auth_middleware.go`
-- **기능**: JWT 토큰 검증 및 사용자 ID 추출
+- **기능**: JWT 토큰 검증 및 사용자 UUID 추출
 - **동작 순서**:
   1. Authorization 헤더에서 Bearer 토큰 추출
   2. JWT 토큰 검증
-  3. 사용자 ID를 context에 저장
+  3. 사용자 UUID를 context에 저장
   4. 다음 핸들러로 진행
+- **중요**: 모든 인증된 API에서 UUID를 메인 키로 사용
 
 ### 2. 데이터베이스 미들웨어 (DatabaseMiddleware)
 - **위치**: `internal/middleware/database_middleware.go`
@@ -281,6 +282,12 @@ func ExampleMiddleware() fiber.Handler {
 - **자동 실행**: 서버 시작 시 `database.RunMigrations()` 자동 실행
 - **수동 실행**: `make migrate` 명령어로 별도 실행 가능
 - **모델 추가**: 새로운 모델은 `pkg/database/database.go`의 `RunMigrations()` 함수에 추가
+
+### 7. UUID 기반 인증 시스템
+- **JWT 토큰**: 사용자 UUID를 담아서 생성
+- **API 인증**: 모든 보호된 엔드포인트에서 UUID를 메인 키로 사용
+- **데이터 조회**: 사용자별 데이터는 UUID로 식별
+- **보안**: UUID는 전역적으로 유일하며 예측 불가능
 
 ## 🔧 개발 환경 설정
 
