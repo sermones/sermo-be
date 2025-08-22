@@ -19,4 +19,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 이미지 라우터 설정
 	SetupImageRoutes(app)
+
+	// 채팅봇 라우터 설정
+	SetupChatbotRoutes(app)
 }
