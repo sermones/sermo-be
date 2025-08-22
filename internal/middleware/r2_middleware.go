@@ -19,7 +19,8 @@ func R2Middleware(cfg *config.Config) fiber.Handler {
 		})
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{
-				"error": "Failed to initialize R2 client",
+				"error":   "Failed to initialize R2 client",
+				"details": err.Error(),
 			})
 		}
 

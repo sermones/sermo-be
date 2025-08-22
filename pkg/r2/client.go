@@ -36,12 +36,14 @@ func NewClient(cfg *Config) (*Client, error) {
 			cfg.SecretAccessKey,
 			"",
 		)),
+		config.WithRegion("apac"), // R2 APAC 리전 사용
 		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
 			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 				return aws.Endpoint{
 					URL:               cfg.Endpoint,
-					SigningRegion:     "auto",
+					SigningRegion:     "apac",
 					HostnameImmutable: true,
+					PartitionID:       "aws",
 				}, nil
 			},
 		)),

@@ -63,6 +63,11 @@ func UploadImage(c *fiber.Ctx) error {
 
 	// R2 클라이언트 가져오기
 	r2Client := middleware.GetR2Client(c)
+	if r2Client == nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "R2 클라이언트 초기화 실패",
+		})
+	}
 
 	// 파일 키 생성 (사용자UUID/타임스탬프_파일명)
 	timestamp := time.Now().Unix()
@@ -81,7 +86,8 @@ func UploadImage(c *fiber.Ctx) error {
 
 	if err := r2Client.UploadFile(c.Context(), key, fileReader); err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error": "파일 업로드에 실패했습니다",
+			"error":   "파일 업로드에 실패했습니다",
+			"details": err.Error(),
 		})
 	}
 
@@ -99,7 +105,8 @@ func UploadImage(c *fiber.Ctx) error {
 
 	if err := database.DB.Create(&image).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error": "이미지 정보 저장에 실패했습니다",
+			"error":   "이미지 정보 저장에 실패했습니다",
+			"details": err.Error(),
 		})
 	}
 
