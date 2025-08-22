@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime
+bin/
+tmp/
+
+# Volumes
+volumes/
+
+# Documentation
+README.md
+docs/
+
+# Test files
+test/
+*_test.go
+
+# Environment files
+.env
+.env.local
