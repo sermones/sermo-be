@@ -38,7 +38,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	swagger "github.com/swaggo/fiber-swagger"
 )
 
 func main() {
@@ -89,9 +88,6 @@ func main() {
 	// DI 미들웨어 설정
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
-
-	// Swagger UI 설정
-	app.Get("/swagger/*", swagger.FiberWrapHandler())
 
 	// 라우터 설정
 	routes.SetupRoutes(app)
