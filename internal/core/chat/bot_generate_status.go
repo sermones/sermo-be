@@ -28,16 +28,12 @@ func (sg *StatusGenerator) ExtractAndSaveStatus(session *middleware.SSESession, 
 	// 상태 정보 추출
 	statusResult := sg.extractUserStatus(userMessage, openaiClient)
 	if statusResult == nil {
-		log.Printf("상태 정보 추출 실패 - 세션: %s", session.SessionID)
 		return
 	}
 
 	// 저장이 필요한 경우에만 저장
 	if statusResult.NeedsSave {
-		log.Printf("상태 정보 저장 시작 - 이벤트: %s, 유효시간: %s", statusResult.Event, statusResult.ValidUntil)
 		go sg.saveUserStatus(session, statusResult.Event, statusResult.ValidUntil, statusResult.Context)
-	} else {
-		log.Printf("상태 정보 저장 불필요 - 일반 대화 응답")
 	}
 }
 
@@ -59,26 +55,17 @@ func (sg *StatusGenerator) extractUserStatus(userMessage string, openaiClient *o
 		},
 	}
 
-	log.Printf("상태 정보 추출 요청 시작 - 사용자 메시지: %s", userMessage)
-
 	// 상태 정보 추출 요청
 	statusResponse, err := openaiClient.ChatCompletion(ctx, statusMessages)
 	if err != nil {
-		log.Printf("상태 정보 추출 실패: %v", err)
 		return nil
 	}
-
-	log.Printf("상태 정보 추출 응답 수신 - 응답: %s", statusResponse.Message.Content)
 
 	// 상태 정보 파싱
 	statusResult, err := sg.statusService.ParseStatusExtractionResult(statusResponse.Message.Content)
 	if err != nil {
-		log.Printf("상태 정보 파싱 실패: %v, 원본 응답: %s", err, statusResponse.Message.Content)
 		return nil
 	}
-
-	log.Printf("상태 정보 파싱 완료 - needs_save: %t, event: %s, valid_until: %s",
-		statusResult.NeedsSave, statusResult.Event, statusResult.ValidUntil)
 
 	return statusResult
 }
@@ -94,7 +81,5 @@ func (sg *StatusGenerator) saveUserStatus(session *middleware.SSESession, event 
 	)
 	if err != nil {
 		log.Printf("상태 정보 저장 실패 - 세션: %s, 에러: %v", session.SessionID, err)
-	} else {
-		log.Printf("상태 정보 저장 완료 - 세션: %s, 이벤트: %s", session.SessionID, event)
 	}
 }
