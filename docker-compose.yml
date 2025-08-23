@@ -101,4 +101,4 @@ volumes:
 
 networks:
   sermo-network:
-    external: true
+    driver: bridge
