@@ -127,7 +127,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "현재 인증된 사용자의 모든 문장 북마크를 조회합니다.",
+                "description": "현재 인증된 사용자의 모든 문장 북마크를 조회합니다. 최신순으로 정렬되어 반환됩니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -140,7 +140,7 @@ const docTemplate = `{
                 "summary": "문장 북마크 전체 조회",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "문장 북마크 목록",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -149,7 +149,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -163,7 +163,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "새로운 문장 북마크를 생성합니다.",
+                "description": "새로운 문장 북마크를 생성합니다. 문장은 1-1000자까지 입력 가능합니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -176,7 +176,7 @@ const docTemplate = `{
                 "summary": "문장 북마크 생성",
                 "parameters": [
                     {
-                        "description": "북마크 생성 요청",
+                        "description": "북마크 생성 요청 (sentence 필수)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -187,20 +187,20 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "북마크 생성 성공",
                         "schema": {
                             "$ref": "#/definitions/bookmark.CreateSentenceBookmarkResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 요청 (문장 길이 제한 등)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -216,7 +216,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "현재 인증된 사용자의 특정 날짜 문장 북마크를 조회합니다.",
+                "description": "현재 인증된 사용자의 특정 날짜 문장 북마크를 조회합니다. 날짜는 YYYY-MM-DD 형식으로 입력해야 합니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -230,7 +230,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "조회할 날짜 (YYYY-MM-DD 형식)",
+                        "description": "조회할 날짜 (YYYY-MM-DD 형식, 예: 2024-01-15)",
                         "name": "date",
                         "in": "query",
                         "required": true
@@ -238,7 +238,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "해당 날짜의 문장 북마크 목록",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -247,14 +247,14 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 날짜 형식",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -270,7 +270,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "현재 인증된 사용자의 모든 단어 북마크를 조회합니다.",
+                "description": "현재 인증된 사용자의 모든 단어 북마크를 조회합니다. 최신순으로 정렬되어 반환됩니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -283,7 +283,7 @@ const docTemplate = `{
                 "summary": "단어 북마크 전체 조회",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "단어 북마크 목록",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -292,7 +292,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -306,7 +306,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "새로운 단어 북마크를 생성합니다.",
+                "description": "새로운 단어 북마크를 생성합니다. 단어는 1-100자까지 입력 가능합니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -319,7 +319,7 @@ const docTemplate = `{
                 "summary": "단어 북마크 생성",
                 "parameters": [
                     {
-                        "description": "북마크 생성 요청",
+                        "description": "북마크 생성 요청 (word 필수)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -330,20 +330,20 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "북마크 생성 성공",
                         "schema": {
                             "$ref": "#/definitions/bookmark.CreateWordBookmarkResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 요청 (단어 길이 제한 등)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -359,7 +359,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "현재 인증된 사용자의 특정 날짜 단어 북마크를 조회합니다.",
+                "description": "현재 인증된 사용자의 특정 날짜 단어 북마크를 조회합니다. 날짜는 YYYY-MM-DD 형식으로 입력해야 합니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -373,7 +373,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "조회할 날짜 (YYYY-MM-DD 형식)",
+                        "description": "조회할 날짜 (YYYY-MM-DD 형식, 예: 2024-01-15)",
                         "name": "date",
                         "in": "query",
                         "required": true
@@ -381,7 +381,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "해당 날짜의 단어 북마크 목록",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -390,14 +390,14 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 날짜 형식",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1048,7 +1048,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Gemini API를 사용하여 텍스트 프롬프트로 이미지를 생성합니다. 회원가입한 사용자만 사용 가능합니다. 이미지 사이즈는 config에서 자동으로 1024x1024로 설정됩니다.",
+                "description": "OpenAI를 사용하여 사용자 프롬프트에서 외형 관련 특징을 자동으로 추출하고, 이를 포함한 향상된 프롬프트로 Gemini API를 통해 이미지를 생성합니다. 회원가입한 사용자만 사용 가능하며, 이미지 사이즈는 config에서 자동으로 설정됩니다.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1058,7 +1058,7 @@ const docTemplate = `{
                 "tags": [
                     "Image"
                 ],
-                "summary": "AI 이미지 생성",
+                "summary": "AI 이미지 생성 (외형 특징 자동 추출)",
                 "parameters": [
                     {
                         "description": "이미지 생성 정보 (prompt는 필수, style은 선택사항)",
@@ -1072,42 +1072,27 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "이미지 생성 성공",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/image.GenerateImageResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "image_ids": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/image.GenerateImageResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "잘못된 요청 (프롬프트 누락 등)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "인증 실패",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "서버 오류 (OpenAI/Gemini API 오류 등)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

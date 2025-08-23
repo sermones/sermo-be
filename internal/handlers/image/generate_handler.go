@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"sermo-be/pkg/openai"
 	"sermo-be/pkg/prompt"
 )
 
@@ -26,19 +28,18 @@ type GenerateImageResponse struct {
 	ImageIDs []string `json:"image_ids"` // 생성된 이미지 ID 리스트
 }
 
-// GenerateImage Gemini API를 사용하여 이미지 생성 (인증 필요)
-// @Summary AI 이미지 생성
-// @Description Gemini API를 사용하여 텍스트 프롬프트로 이미지를 생성합니다. 회원가입한 사용자만 사용 가능합니다. 이미지 사이즈는 config에서 자동으로 1024x1024로 설정됩니다.
+// GenerateImage OpenAI와 Gemini API를 사용하여 이미지 생성 (인증 필요)
+// @Summary AI 이미지 생성 (외형 특징 자동 추출)
+// @Description OpenAI를 사용하여 사용자 프롬프트에서 외형 관련 특징을 자동으로 추출하고, 이를 포함한 향상된 프롬프트로 Gemini API를 통해 이미지를 생성합니다. 회원가입한 사용자만 사용 가능하며, 이미지 사이즈는 config에서 자동으로 설정됩니다.
 // @Tags Image
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param request body GenerateImageRequest true "이미지 생성 정보 (prompt는 필수, style은 선택사항)"
-// @Success 200 {object} GenerateImageResponse
-// @Success 200 {object} GenerateImageResponse{image_ids=[]string}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} GenerateImageResponse "이미지 생성 성공"
+// @Failure 400 {object} map[string]interface{} "잘못된 요청 (프롬프트 누락 등)"
+// @Failure 401 {object} map[string]interface{} "인증 실패"
+// @Failure 500 {object} map[string]interface{} "서버 오류 (OpenAI/Gemini API 오류 등)"
 // @Router /image/generate [post]
 func GenerateImage(c *fiber.Ctx) error {
 	// 요청 파싱
@@ -56,6 +57,14 @@ func GenerateImage(c *fiber.Ctx) error {
 		})
 	}
 
+	// context에서 OpenAI 클라이언트 가져오기
+	openaiClient := middleware.GetOpenAIClient(c)
+	if openaiClient == nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "OpenAI client not available",
+		})
+	}
+
 	// context에서 Gemini 클라이언트 가져오기
 	geminiClient := middleware.GetGeminiClient(c)
 	if geminiClient == nil {
@@ -64,8 +73,19 @@ func GenerateImage(c *fiber.Ctx) error {
 		})
 	}
 
-	// 향상된 프롬프트 생성 (Google 공식 문서 권장사항 적용)
-	enhancedPrompt := buildEnhancedPrompt(req.Prompt, req.Style, c)
+	// OpenAI를 사용해서 외형 관련 설정 추출
+	appearanceFeatures, err := extractAppearanceFeatures(openaiClient, req.Prompt, c)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to extract appearance features: " + err.Error(),
+		})
+	}
+	fmt.Printf("Appearance features: %s\n", appearanceFeatures)
+
+	time.Sleep(10 * time.Second)
+
+	// 향상된 프롬프트 생성 (외형 특징 포함)
+	enhancedPrompt := buildEnhancedPrompt(req.Prompt, req.Style, appearanceFeatures, c)
 
 	fmt.Printf("Enhanced prompt: %s\n", enhancedPrompt)
 
@@ -162,13 +182,44 @@ func GenerateImage(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-// buildEnhancedPrompt 향상된 프롬프트 생성 (Google 공식 문서 권장사항 적용)
-func buildEnhancedPrompt(basePrompt, style string, c *fiber.Ctx) string {
+// extractAppearanceFeatures OpenAI를 사용해서 외형 관련 특징 추출
+func extractAppearanceFeatures(openaiClient *openai.Client, basePrompt string, c *fiber.Ctx) (string, error) {
+	// 외형 추출을 위한 프롬프트 생성
+	extractionPrompt := prompt.GetAppearanceExtractionPrompt()
+
+	// 사용자 프롬프트와 함께 메시지 구성
+	messages := []openai.ChatMessage{
+		{
+			Role:    "system",
+			Content: extractionPrompt,
+		},
+		{
+			Role:    "user",
+			Content: fmt.Sprintf("다음 정보에서 외형 관련 특징을 추출해주세요:\n\n%s", basePrompt),
+		},
+	}
+
+	// OpenAI API 호출
+	response, err := openaiClient.ChatCompletion(c.Context(), messages)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract appearance features: %w", err)
+	}
+
+	return response.Message.Content, nil
+}
+
+// buildEnhancedPrompt 향상된 프롬프트 생성 (외형 특징 포함)
+func buildEnhancedPrompt(_basePrompt, style, appearanceFeatures string, c *fiber.Ctx) string {
 	// config에서 기본 이미지 사이즈와 스타일 가져오기
 	config := middleware.GetConfig(c)
 
 	// 기본 프롬프트에 이미지 생성 요청을 명시적으로 추가
-	enhancedPrompt := fmt.Sprintf("Please generate an image of \n Detail(you must follow this instruction): %s", basePrompt)
+	enhancedPrompt := "Please generate an image:"
+
+	// 외형 특징 추가
+	if appearanceFeatures != "" {
+		enhancedPrompt += fmt.Sprintf("\n\nAppearance features:\n%s", appearanceFeatures)
+	}
 
 	// 스타일 정보 추가 (사용자 입력이 있으면 사용, 없으면 config 기본값 사용)
 	if style != "" {

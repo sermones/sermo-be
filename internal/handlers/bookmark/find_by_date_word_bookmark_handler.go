@@ -11,15 +11,15 @@ import (
 
 // FindByDateWordBookmark 특정 날짜의 단어 북마크 조회 (인증 필요)
 // @Summary 날짜별 단어 북마크 조회
-// @Description 현재 인증된 사용자의 특정 날짜 단어 북마크를 조회합니다.
+// @Description 현재 인증된 사용자의 특정 날짜 단어 북마크를 조회합니다. 날짜는 YYYY-MM-DD 형식으로 입력해야 합니다.
 // @Tags Bookmark
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param date query string true "조회할 날짜 (YYYY-MM-DD 형식)"
-// @Success 200 {array} WordBookmarkResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
+// @Param date query string true "조회할 날짜 (YYYY-MM-DD 형식, 예: 2024-01-15)"
+// @Success 200 {array} WordBookmarkResponse "해당 날짜의 단어 북마크 목록"
+// @Failure 400 {object} map[string]interface{} "잘못된 날짜 형식"
+// @Failure 401 {object} map[string]interface{} "인증 실패"
 // @Router /bookmark/word/date [get]
 func FindByDateWordBookmark(c *fiber.Ctx) error {
 	// context에서 사용자 UUID 가져오기

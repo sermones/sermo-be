@@ -22,15 +22,15 @@ type CreateSentenceBookmarkResponse struct {
 
 // CreateSentenceBookmark 문장 북마크 생성 (인증 필요)
 // @Summary 문장 북마크 생성
-// @Description 새로운 문장 북마크를 생성합니다.
+// @Description 새로운 문장 북마크를 생성합니다. 문장은 1-1000자까지 입력 가능합니다.
 // @Tags Bookmark
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body CreateSentenceBookmarkRequest true "북마크 생성 요청"
-// @Success 201 {object} CreateSentenceBookmarkResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
+// @Param request body CreateSentenceBookmarkRequest true "북마크 생성 요청 (sentence 필수)"
+// @Success 201 {object} CreateSentenceBookmarkResponse "북마크 생성 성공"
+// @Failure 400 {object} map[string]interface{} "잘못된 요청 (문장 길이 제한 등)"
+// @Failure 401 {object} map[string]interface{} "인증 실패"
 // @Router /bookmark/sentence [post]
 func CreateSentenceBookmark(c *fiber.Ctx) error {
 	// context에서 사용자 UUID 가져오기

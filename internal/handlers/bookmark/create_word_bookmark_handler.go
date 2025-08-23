@@ -22,15 +22,15 @@ type CreateWordBookmarkResponse struct {
 
 // CreateWordBookmark 단어 북마크 생성 (인증 필요)
 // @Summary 단어 북마크 생성
-// @Description 새로운 단어 북마크를 생성합니다.
+// @Description 새로운 단어 북마크를 생성합니다. 단어는 1-100자까지 입력 가능합니다.
 // @Tags Bookmark
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body CreateWordBookmarkRequest true "북마크 생성 요청"
-// @Success 201 {object} CreateWordBookmarkResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
+// @Param request body CreateWordBookmarkRequest true "북마크 생성 요청 (word 필수)"
+// @Success 201 {object} CreateWordBookmarkResponse "북마크 생성 성공"
+// @Failure 400 {object} map[string]interface{} "잘못된 요청 (단어 길이 제한 등)"
+// @Failure 401 {object} map[string]interface{} "인증 실패"
 // @Router /bookmark/word [post]
 func CreateWordBookmark(c *fiber.Ctx) error {
 	// context에서 사용자 UUID 가져오기

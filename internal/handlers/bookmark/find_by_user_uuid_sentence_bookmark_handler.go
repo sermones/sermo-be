@@ -17,13 +17,13 @@ type SentenceBookmarkResponse struct {
 
 // FindByUserUUIDSentenceBookmark 사용자의 모든 문장 북마크 조회 (인증 필요)
 // @Summary 문장 북마크 전체 조회
-// @Description 현재 인증된 사용자의 모든 문장 북마크를 조회합니다.
+// @Description 현재 인증된 사용자의 모든 문장 북마크를 조회합니다. 최신순으로 정렬되어 반환됩니다.
 // @Tags Bookmark
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} SentenceBookmarkResponse
-// @Failure 401 {object} map[string]interface{}
+// @Success 200 {array} SentenceBookmarkResponse "문장 북마크 목록"
+// @Failure 401 {object} map[string]interface{} "인증 실패"
 // @Router /bookmark/sentence [get]
 func FindByUserUUIDSentenceBookmark(c *fiber.Ctx) error {
 	// context에서 사용자 UUID 가져오기
