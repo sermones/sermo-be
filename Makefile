@@ -32,7 +32,7 @@ build: copy-docs
 	docker-compose build
 
 # Start all services (clean rebuild)
-run: clean-all copy-docs
+run: copy-docs
 	@echo "🔑 SSH 에이전트를 확인하고 설정합니다..."
 	@if [ -z "$$SSH_AUTH_SOCK" ]; then \
 		echo "SSH 에이전트를 시작합니다..."; \
@@ -40,8 +40,8 @@ run: clean-all copy-docs
 		ssh-add ~/.ssh/id_rsa 2>/dev/null || echo "⚠️  SSH 키를 추가할 수 없습니다. ssh-add를 수동으로 실행하세요."; \
 	fi
 	@echo "✅ SSH 에이전트가 설정되었습니다."
-	@echo "🏗️  Docker 이미지를 새로 빌드합니다..."
-	docker-compose build --no-cache
+	@echo "🏗️  백엔드 이미지만 새로 빌드합니다..."
+	docker-compose build --no-cache backend
 	@echo "🚀 서비스를 시작합니다..."
 	docker-compose up -d
 
@@ -70,15 +70,15 @@ clean:
 	docker-compose down -v --remove-orphans
 	docker system prune -f
 
-# Clean everything including images (preserve DB volumes)
+# Clean everything including images (preserve DB volumes and networks)
 clean-all:
-	@echo "🧹 모든 컨테이너, 네트워크를 정리합니다..."
+	@echo "🧹 모든 컨테이너를 정리합니다..."
 	docker-compose down --remove-orphans
 	@echo "🗑️  Docker 이미지를 삭제합니다..."
 	docker-compose down --rmi all
 	@echo "🧽 Docker 시스템을 정리합니다..."
 	docker system prune -af
-	@echo "💾 데이터베이스 볼륨은 보존됩니다."
+	@echo "💾 데이터베이스 볼륨과 네트워크는 보존됩니다."
 	@echo "✅ 정리가 완료되었습니다."
 
 # Show logs from all services
