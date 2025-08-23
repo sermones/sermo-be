@@ -19,7 +19,6 @@ import (
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /fcm/token/user [get]
-
 func FindFCMTokensByUserUUID(c *fiber.Ctx) error {
 	// context에서 사용자 UUID 가져오기
 	userUUID := middleware.GetUserUUID(c)

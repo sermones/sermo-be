@@ -29,7 +29,7 @@ build: copy-docs
 		ssh-add ~/.ssh/id_rsa 2>/dev/null || echo "⚠️  SSH 키를 추가할 수 없습니다. ssh-add를 수동으로 실행하세요."; \
 	fi
 	@echo "✅ SSH 에이전트가 설정되었습니다."
-	docker-compose build
+	docker compose build
 
 # Start all services (clean rebuild)
 run: copy-docs
@@ -41,41 +41,41 @@ run: copy-docs
 	fi
 	@echo "✅ SSH 에이전트가 설정되었습니다."
 	@echo "🏗️  백엔드 이미지만 새로 빌드합니다..."
-	docker-compose build --no-cache backend
+	docker compose build --no-cache backend
 	@echo "🚀 서비스를 시작합니다..."
-	docker-compose up -d
+	docker compose up -d
 
 # Start only PostgreSQL database
 run-db:
-	docker-compose up -d postgres
+	docker compose up -d postgres
 
 # Start only Redis cache
 run-redis:
-	docker-compose up -d redis
+	docker compose up -d redis
 
 # Stop all services
 stop:
-	docker-compose down
+	docker compose down
 
 # Stop only PostgreSQL database
 stop-db:
-	docker-compose stop postgres
+	docker compose stop postgres
 
 # Stop only Redis cache
 stop-redis:
-	docker-compose stop redis
+	docker compose stop redis
 
 # Clean everything (containers, networks, volumes)
 clean:
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	docker system prune -f
 
 # Clean everything including images (preserve DB volumes and networks)
 clean-all:
 	@echo "🧹 모든 컨테이너를 정리합니다..."
-	docker-compose down --remove-orphans
+	docker compose down --remove-orphans
 	@echo "🗑️  Docker 이미지를 삭제합니다..."
-	docker-compose down --rmi all
+	docker compose down --rmi all
 	@echo "🧽 Docker 시스템을 정리합니다..."
 	docker system prune -af
 	@echo "💾 데이터베이스 볼륨과 네트워크는 보존됩니다."
@@ -83,20 +83,20 @@ clean-all:
 
 # Show logs from all services
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 # Show logs from PostgreSQL only
 logs-db:
-	docker-compose logs -f postgres
+	docker compose logs -f postgres
 
 # Show logs from Redis only
 logs-redis:
-	docker-compose logs -f redis
+	docker compose logs -f redis
 
 # Test Redis connection
 test-redis:
 	@echo "🔍 Redis 연결을 테스트합니다..."
-	@docker-compose exec redis redis-cli ping
+	@docker compose exec redis redis-cli ping
 
 # Run tests
 test:

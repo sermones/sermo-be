@@ -34,7 +34,6 @@ type CreateFCMTokenResponse struct {
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /fcm/token [post]
-
 func CreateFCMToken(c *fiber.Ctx) error {
 	// 요청 파싱
 	var req CreateFCMTokenRequest

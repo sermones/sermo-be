@@ -22,7 +22,6 @@ import (
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /fcm/token/{id} [delete]
-
 func DeleteFCMToken(c *fiber.Ctx) error {
 	// URL 파라미터에서 FCM 토큰 ID 가져오기
 	tokenID := c.Params("id")
