@@ -28,6 +28,13 @@ type UserMessage struct {
 	SessionID string `json:"session_id"`
 }
 
+// OnKeyboardMessage 키보드 입력 이벤트 구조
+type OnKeyboardMessage struct {
+	Type      string `json:"type"`
+	SessionID string `json:"session_id"`
+	Timestamp string `json:"timestamp"`
+}
+
 // BotGoroutine 봇 고루틴 관리자
 type BotGoroutine struct {
 	messageService *MessageService
@@ -85,7 +92,15 @@ func (bg *BotGoroutine) handleIncomingMessage(session *middleware.SSESession, me
 		return
 	}
 
-	bg.processUserMessage(session, sseMessage, messageBuffer, responseTimer, openaiClient)
+	// 메시지 타입별로 처리
+	switch sseMessage.Type {
+	case "user":
+		bg.processUserMessage(session, sseMessage, messageBuffer, responseTimer, openaiClient)
+	case "onkeyboard":
+		bg.processOnKeyboardEvent(session, responseTimer)
+	default:
+		log.Printf("알 수 없는 메시지 타입: %s", sseMessage.Type)
+	}
 }
 
 // parseUserMessage 사용자 메시지 파싱
@@ -115,9 +130,26 @@ func (bg *BotGoroutine) processUserMessage(session *middleware.SSESession, sseMe
 	// 메시지를 버퍼에 추가
 	*messageBuffer = append(*messageBuffer, sseMessage.Content)
 
-	// 2초 후 버퍼에 쌓인 모든 메시지로 봇 응답 생성
+	// 5초 후 버퍼에 쌓인 모든 메시지로 봇 응답 생성
 	*responseTimer = time.AfterFunc(5*time.Second, func() {
 		bg.generateAIResponse(session, *messageBuffer, openaiClient)
+	})
+}
+
+// processOnKeyboardEvent 키보드 입력 이벤트 처리
+func (bg *BotGoroutine) processOnKeyboardEvent(session *middleware.SSESession, responseTimer **time.Timer) {
+	log.Printf("키보드 입력 이벤트 수신 - 세션: %s", session.SessionID)
+
+	// 기존 타이머가 있다면 취소
+	if *responseTimer != nil {
+		(*responseTimer).Stop()
+	}
+
+	// 키보드 입력 중일 때는 최소 5초 대기
+	*responseTimer = time.AfterFunc(5*time.Second, func() {
+		// 5초 후에 타이머를 nil로 설정하여 추가 대기 없이 즉시 응답 가능하게 함
+		*responseTimer = nil
+		log.Printf("키보드 입력 대기 완료 - 세션: %s", session.SessionID)
 	})
 }
 

@@ -92,9 +92,9 @@ func StartChat(c *fiber.Ctx) error {
 					continue
 				}
 
-				// 사용자 메시지인 경우 봇 채널로 전달
-				if baseMessage.Type == "user" {
-					log.Printf("사용자 메시지를 봇 채널로 전달 - 세션: %s", session.SessionID)
+				// 사용자 메시지와 onkeyboard 이벤트를 봇 채널로 전달
+				if baseMessage.Type == "user" || baseMessage.Type == "onkeyboard" {
+					log.Printf("%s 이벤트를 봇 채널로 전달 - 세션: %s", baseMessage.Type, session.SessionID)
 					select {
 					case botChannel <- message:
 						// 전달 성공

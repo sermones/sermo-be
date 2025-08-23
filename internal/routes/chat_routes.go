@@ -23,4 +23,7 @@ func SetupChatRoutes(app *fiber.App) {
 
 	// 채팅 히스토리 조회
 	chatGroup.Post("/history", chat.GetChatHistory)
+
+	// 키보드 입력 이벤트
+	chatGroup.Post("/onkeyboard", chat.OnKeyboard)
 }

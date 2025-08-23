@@ -181,6 +181,19 @@ func (sm *SSEManager) GetUserSessions(userUUID string) []*SSESession {
 	return userSessions
 }
 
+// FindSessionByUserAndChatbot 사용자와 채팅봇으로 세션 찾기
+func (sm *SSEManager) FindSessionByUserAndChatbot(userUUID, chatbotUUID string) *SSESession {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	for _, session := range sm.sessions {
+		if session.UserUUID == userUUID && session.ChatbotUUID == chatbotUUID && session.IsActive {
+			return session
+		}
+	}
+	return nil
+}
+
 // CleanupInactiveSessions 비활성 세션 정리
 func (sm *SSEManager) CleanupInactiveSessions() {
 	sm.mutex.Lock()
