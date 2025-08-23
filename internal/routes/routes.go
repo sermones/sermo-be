@@ -25,4 +25,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 채팅 라우터 설정
 	SetupChatRoutes(app)
+
+	// 북마크 라우터 설정
+	SetupBookmarkRoutes(app)
 }

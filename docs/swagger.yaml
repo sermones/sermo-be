@@ -37,6 +37,31 @@ definitions:
       uuid:
         type: string
     type: object
+  bookmark.CreateSentenceBookmarkRequest:
+    properties:
+      sentence:
+        maxLength: 1000
+        minLength: 1
+        type: string
+    required:
+    - sentence
+    type: object
+  bookmark.CreateSentenceBookmarkResponse:
+    properties:
+      message:
+        type: string
+      uuid:
+        type: string
+    type: object
+  bookmark.SentenceBookmarkResponse:
+    properties:
+      created_at:
+        type: string
+      sentence:
+        type: string
+      uuid:
+        type: string
+    type: object
   chat.ChatHistoryRequest:
     properties:
       chatbot_uuid:
@@ -354,6 +379,98 @@ paths:
       summary: 회원가입
       tags:
       - Authentication
+  /bookmark/sentence:
+    get:
+      consumes:
+      - application/json
+      description: 현재 인증된 사용자의 모든 문장 북마크를 조회합니다.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookmark.SentenceBookmarkResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 문장 북마크 전체 조회
+      tags:
+      - Bookmark
+    post:
+      consumes:
+      - application/json
+      description: 새로운 문장 북마크를 생성합니다.
+      parameters:
+      - description: 북마크 생성 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/bookmark.CreateSentenceBookmarkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/bookmark.CreateSentenceBookmarkResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 문장 북마크 생성
+      tags:
+      - Bookmark
+  /bookmark/sentence/date:
+    get:
+      consumes:
+      - application/json
+      description: 현재 인증된 사용자의 특정 날짜 문장 북마크를 조회합니다.
+      parameters:
+      - description: 조회할 날짜 (YYYY-MM-DD 형식)
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/bookmark.SentenceBookmarkResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 날짜별 문장 북마크 조회
+      tags:
+      - Bookmark
   /chat/history:
     post:
       consumes:
