@@ -128,34 +128,24 @@ func (bg *BotGoroutine) parseUserMessage(message string) (*UserMessage, error) {
 
 // processUserMessage 사용자 메시지 처리
 func (bg *BotGoroutine) processUserMessage(session *middleware.SSESession, sseMessage *UserMessage, messageBuffer *[]string, responseTimer **time.Timer, openaiClient *openai.Client) {
-	log.Printf("사용자 메시지 수신 - 세션: %s, 내용: %s", session.SessionID, sseMessage.Content)
-
 	// 기존 타이머가 있다면 취소
 	if *responseTimer != nil {
 		(*responseTimer).Stop()
-		log.Printf("기존 타이머 취소 - 세션: %s", session.SessionID)
 	}
 
 	// 메시지를 버퍼에 추가
 	*messageBuffer = append(*messageBuffer, sseMessage.Content)
-	log.Printf("메시지 버퍼에 추가 - 현재 버퍼 크기: %d", len(*messageBuffer))
 
-	// 15초 후 버퍼에 쌓인 모든 메시지로 봇 응답 생성 (버퍼링 구현)
+	// 7초 후 버퍼에 쌓인 모든 메시지로 봇 응답 생성 (버퍼링 구현)
 	*responseTimer = time.AfterFunc(7*time.Second, func() {
-		log.Printf("타이머 만료 - 버퍼 메시지 수: %d, 응답 생성 시작", len(*messageBuffer))
 		bg.generateAIResponse(session, *messageBuffer, openaiClient)
 		// 응답 생성 후 버퍼 초기화
 		*messageBuffer = (*messageBuffer)[:0]
-		log.Printf("응답 생성 완료 후 버퍼 초기화 - 세션: %s", session.SessionID)
 	})
-
-	log.Printf("새 타이머 설정 - 15초 후 응답 생성 예정 - 세션: %s", session.SessionID)
 }
 
 // processOnKeyboardEvent 키보드 입력 이벤트 처리
 func (bg *BotGoroutine) processOnKeyboardEvent(session *middleware.SSESession, responseTimer **time.Timer) {
-	log.Printf("키보드 입력 이벤트 수신 - 세션: %s", session.SessionID)
-
 	// 기존 타이머가 있다면 취소
 	if *responseTimer != nil {
 		(*responseTimer).Stop()
@@ -165,7 +155,6 @@ func (bg *BotGoroutine) processOnKeyboardEvent(session *middleware.SSESession, r
 	*responseTimer = time.AfterFunc(5*time.Second, func() {
 		// 5초 후에 타이머를 nil로 설정하여 추가 대기 없이 즉시 응답 가능하게 함
 		*responseTimer = nil
-		log.Printf("키보드 입력 대기 완료 - 세션: %s", session.SessionID)
 	})
 }
 
@@ -180,11 +169,8 @@ func (bg *BotGoroutine) generateAIResponse(session *middleware.SSESession, messa
 		return
 	}
 
-	log.Printf("봇 응답 생성 시작 - 세션: %s, 버퍼 메시지 수: %d", session.SessionID, len(messageBuffer))
-
 	// 버퍼의 모든 메시지를 하나의 컨텍스트로 결합
 	combinedMessage := bg.combineMessages(messageBuffer)
-	log.Printf("결합된 메시지: %s", combinedMessage)
 
 	// 동시에 두 개의 고루틴으로 처리
 	responseChan := make(chan *models.ChatMessage, 1)
@@ -214,7 +200,6 @@ func (bg *BotGoroutine) generateAIResponse(session *middleware.SSESession, messa
 
 	// 상태 정보 처리 완료 대기
 	<-statusChan
-	log.Printf("상태 정보 처리 완료 - 세션: %s", session.SessionID)
 }
 
 // combineMessages 버퍼에 쌓인 메시지들을 하나의 컨텍스트로 결합
@@ -224,23 +209,18 @@ func (bg *BotGoroutine) combineMessages(messages []string) string {
 	}
 
 	if len(messages) == 1 {
-		log.Printf("단일 메시지 - 내용: %s", messages[0])
 		return messages[0]
 	}
 
 	// 여러 메시지가 있을 경우 연결
-	log.Printf("=== 메시지 결합 시작 - 총 %d개 메시지 ===", len(messages))
 	combined := ""
 	for i, msg := range messages {
 		if i > 0 {
 			combined += "\n"
 		}
 		combined += msg
-		log.Printf("메시지 %d 추가: %s", i+1, msg)
 	}
 
-	log.Printf("=== 메시지 결합 완료 ===")
-	log.Printf("최종 결합된 메시지: %s", combined)
 	return combined
 }
 
@@ -260,7 +240,7 @@ func (bg *BotGoroutine) sendBotMessage(session *middleware.SSESession, botChatMe
 	// session.Channel로 전송 (클라이언트에 전달)
 	select {
 	case session.Channel <- botMessageData:
-		log.Printf("봇 응답 전송 완료 - 세션: %s", session.SessionID)
+		// 전송 성공
 	default:
 		log.Printf("세션 채널이 가득 참 - 세션: %s", session.SessionID)
 	}
