@@ -32,6 +32,7 @@ import (
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/routes"
 	"sermo-be/pkg/database"
+	"sermo-be/pkg/redis"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -62,6 +63,11 @@ func main() {
 		log.Fatalf("데이터베이스 마이그레이션 실패: %v", err)
 	}
 
+	// Redis 연결
+	if err := redis.Connect(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB); err != nil {
+		log.Fatalf("Redis 연결 실패: %v", err)
+	}
+
 	// Fiber 앱 생성
 	app := fiber.New(fiber.Config{
 		AppName: "Sermo Backend",
@@ -88,6 +94,7 @@ func main() {
 	// DI 미들웨어 설정
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
+	app.Use(middleware.RedisMiddleware())
 	app.Use(middleware.R2Middleware(cfg))
 	app.Use(middleware.OpenAIMiddleware(cfg))
 
@@ -116,6 +123,11 @@ func main() {
 	log.Println("🔄 SSE 세션 정리 중...")
 	sseManager := middleware.GetSSEManager()
 	sseManager.Shutdown()
+
+	// Redis 연결 종료
+	if err := redis.Close(); err != nil {
+		log.Printf("Redis 연결 종료 실패: %v", err)
+	}
 
 	if err := app.Shutdown(); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)

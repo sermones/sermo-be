@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
 	R2       R2Config
 	Gemini   GeminiConfig
 	OpenAI   OpenAIConfig
@@ -25,6 +26,13 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+}
+
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
 }
 
 type R2Config struct {
@@ -59,6 +67,12 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "password"),
 			DBName:   getEnv("DB_NAME", "sermo"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		Redis: RedisConfig{
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getEnvAsInt("REDIS_DB", 0),
 		},
 		R2: R2Config{
 			AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", "7d72013b97878d91c8d4b44b7515c9f9"),

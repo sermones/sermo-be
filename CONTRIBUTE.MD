@@ -69,6 +69,7 @@ sermo-be/
 ### 7. pkg/
 - **database/**: PostgreSQL 연결 및 GORM 설정
 - **jwt/**: JWT 토큰 생성 및 검증
+- **redis/**: Redis 연결 및 클라이언트 관리
 - **r2/**: Cloudflare R2 스토리지 (준비 중)
 - **logger/**: 로깅 시스템 (준비 중)
 - **utils/**: 유틸리티 함수 (준비 중)
@@ -254,17 +255,33 @@ func ExampleHandler(c *fiber.Ctx) error {
 ### 3. 미들웨어 작성 규칙
 ```go
 func ExampleMiddleware() fiber.Handler {
-    return func(c *fiber.Ctx) error {
-        // 전처리 로직
-        
-        // 다음 핸들러 호출
-        if err := c.Next(); err != nil {
-            return err
-        }
-        
-        // 후처리 로직
-        return nil
-    }
+	return func(c *fiber.Ctx) error {
+		// 전처리 로직
+		
+		// 다음 핸들러 호출
+		if err := c.Next(); err != nil {
+			return err
+		}
+		
+		// 후처리 로직
+		return nil
+	}
+}
+```
+
+### 4. Redis 사용 규칙
+```go
+// 핸들러에서 Redis 클라이언트 접근
+func ExampleHandler(c *fiber.Ctx) error {
+	redisClient := middleware.GetRedis(c).(*redis.Client)
+	
+	// Redis 작업 수행
+	err := redisClient.Set(ctx, "key", "value", time.Hour).Err()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Redis operation failed"})
+	}
+	
+	return c.JSON(response)
 }
 ```
 
@@ -310,6 +327,12 @@ DB_USER=postgres
 DB_PASSWORD=password
 DB_NAME=sermo
 DB_SSLMODE=disable
+
+# Redis 설정
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 
 
 

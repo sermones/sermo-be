@@ -6,12 +6,16 @@ help:
 	@echo "  build     - Build Docker images"
 	@echo "  run       - Start all services (clean rebuild with --no-cache)"
 	@echo "  run-db    - Start only PostgreSQL database"
+	@echo "  run-redis - Start only Redis cache"
 	@echo "  stop      - Stop all services"
 	@echo "  stop-db   - Stop only PostgreSQL database"
+	@echo "  stop-redis- Stop only Redis cache"
 	@echo "  clean     - Stop and remove containers, networks, volumes"
 	@echo "  clean-all - Stop and remove containers, networks, and images (preserve DB volumes)"
 	@echo "  logs      - Show logs from all services"
 	@echo "  logs-db   - Show logs from PostgreSQL only"
+	@echo "  logs-redis- Show logs from Redis only"
+	@echo "  test-redis- Test Redis connection"
 	@echo "  test      - Run tests"
 	@echo "  dev       - Run in development mode (go run)"
 	@echo "  swagger   - Generate Swagger documentation"
@@ -45,6 +49,10 @@ run: clean-all copy-docs
 run-db:
 	docker-compose up -d postgres
 
+# Start only Redis cache
+run-redis:
+	docker-compose up -d redis
+
 # Stop all services
 stop:
 	docker-compose down
@@ -52,6 +60,10 @@ stop:
 # Stop only PostgreSQL database
 stop-db:
 	docker-compose stop postgres
+
+# Stop only Redis cache
+stop-redis:
+	docker-compose stop redis
 
 # Clean everything (containers, networks, volumes)
 clean:
@@ -76,6 +88,15 @@ logs:
 # Show logs from PostgreSQL only
 logs-db:
 	docker-compose logs -f postgres
+
+# Show logs from Redis only
+logs-redis:
+	docker-compose logs -f redis
+
+# Test Redis connection
+test-redis:
+	@echo "🔍 Redis 연결을 테스트합니다..."
+	@docker-compose exec redis redis-cli ping
 
 # Run tests
 test:

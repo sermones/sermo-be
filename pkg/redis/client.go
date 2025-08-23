@@ -11,22 +11,14 @@ import (
 
 var RedisClient *redis.Client
 
-// Config Redis 연결 설정
-type Config struct {
-	Host     string
-	Port     string
-	Password string
-	DB       int
-}
-
 // Connect Redis 연결
-func Connect(config *Config) error {
-	addr := fmt.Sprintf("%s:%s", config.Host, config.Port)
+func Connect(host, port, password string, db int) error {
+	addr := fmt.Sprintf("%s:%s", host, port)
 
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:         addr,
-		Password:     config.Password,
-		DB:           config.DB,
+		Password:     password,
+		DB:           db,
 		PoolSize:     10,
 		MinIdleConns: 5,
 		MaxRetries:   3,
