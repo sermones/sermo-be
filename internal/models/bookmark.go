@@ -24,3 +24,22 @@ func NewSentenceBookmark(userUUID uuid.UUID, sentence string) *SentenceBookmark 
 		UpdatedAt: now,
 	}
 }
+
+type WordBookmark struct {
+	UUID      uuid.UUID `json:"uuid" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserUUID  uuid.UUID `json:"user_uuid" gorm:"type:uuid;not null;index"`
+	Word      string    `json:"word" gorm:"type:varchar(100);not null"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+func NewWordBookmark(userUUID uuid.UUID, word string) *WordBookmark {
+	now := time.Now()
+	return &WordBookmark{
+		UUID:      uuid.New(),
+		UserUUID:  userUUID,
+		Word:      word,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}

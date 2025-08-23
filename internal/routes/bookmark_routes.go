@@ -16,4 +16,9 @@ func SetupBookmarkRoutes(app *fiber.App) {
 	bookmarkGroup.Post("/sentence", bookmark.CreateSentenceBookmark)
 	bookmarkGroup.Get("/sentence", bookmark.FindByUserUUIDSentenceBookmark)
 	bookmarkGroup.Get("/sentence/date", bookmark.FindByDateSentenceBookmark)
+
+	// 단어 북마크 라우트
+	bookmarkGroup.Post("/word", bookmark.CreateWordBookmark)
+	bookmarkGroup.Get("/word", bookmark.FindByUserUUIDWordBookmark)
+	bookmarkGroup.Get("/word/date", bookmark.FindByDateWordBookmark)
 }
