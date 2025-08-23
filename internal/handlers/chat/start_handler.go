@@ -103,6 +103,11 @@ func StartChat(c *fiber.Ctx) error {
 					}
 				}
 
+				// 타이핑 이벤트는 클라이언트에만 전송 (봇 채널로 전달하지 않음)
+				if baseMessage.Type == "bot_typing" {
+					log.Printf("봇 타이핑 이벤트 클라이언트 전송 - 세션: %s", session.SessionID)
+				}
+
 				// 클라이언트에 메시지 전송 (echo)
 				_, err := w.Write([]byte(message))
 				if err != nil {

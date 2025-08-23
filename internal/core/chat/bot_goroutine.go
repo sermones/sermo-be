@@ -106,6 +106,9 @@ func (bg *BotGoroutine) handleIncomingMessage(session *middleware.SSESession, me
 		bg.processUserMessage(session, sseMessage, messageBuffer, responseTimer, openaiClient)
 	case "onkeyboard":
 		bg.processOnKeyboardEvent(session, responseTimer)
+	case "bot_typing":
+		// 타이핑 이벤트는 봇 채널로 전달하지 않음 (클라이언트에만 전송)
+		log.Printf("봇 타이핑 이벤트 수신 - 봇 채널로 전달하지 않음 - 세션: %s", session.SessionID)
 	default:
 		log.Printf("알 수 없는 메시지 타입: %s", sseMessage.Type)
 	}
@@ -137,7 +140,7 @@ func (bg *BotGoroutine) processUserMessage(session *middleware.SSESession, sseMe
 	*messageBuffer = append(*messageBuffer, sseMessage.Content)
 
 	// 7초 후 버퍼에 쌓인 모든 메시지로 봇 응답 생성 (버퍼링 구현)
-	*responseTimer = time.AfterFunc(7*time.Second, func() {
+	*responseTimer = time.AfterFunc(4*time.Second, func() {
 		bg.generateAIResponse(session, *messageBuffer, openaiClient)
 		// 응답 생성 후 버퍼 초기화
 		*messageBuffer = (*messageBuffer)[:0]

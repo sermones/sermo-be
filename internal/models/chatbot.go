@@ -24,6 +24,7 @@ type Chatbot struct {
 	Hashtags  json.RawMessage `json:"hashtags" gorm:"type:jsonb"`
 	Gender    Gender          `json:"gender" gorm:"type:varchar(20);not null;default:'unspecified'"`
 	Details   string          `json:"details" gorm:"type:text"`
+	Summary   *string         `json:"summary" gorm:"type:text"`                   // AI가 생성한 캐릭터 요약 (optional)
 	UserUUID  string          `json:"user_uuid" gorm:"type:varchar(36);not null"` // FK 없이 문자열로 저장
 	CreatedAt time.Time       `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time       `json:"updated_at" gorm:"autoUpdateTime"`
@@ -39,6 +40,7 @@ func NewChatbot(name, imageID string, hashtags json.RawMessage, gender Gender, d
 		Hashtags:  hashtags,
 		Gender:    gender,
 		Details:   details,
+		Summary:   nil, // 초기에는 요약 없음
 		UserUUID:  userUUID,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -48,4 +50,15 @@ func NewChatbot(name, imageID string, hashtags json.RawMessage, gender Gender, d
 // TableName GORM 테이블명 지정
 func (Chatbot) TableName() string {
 	return "chatbots"
+}
+
+// GetSummary 기존 요약 반환 (없으면 nil)
+func (c *Chatbot) GetSummary() *string {
+	return c.Summary
+
+}
+
+// SetSummary 요약 정보 설정
+func (c *Chatbot) SetSummary(summary string) {
+	c.Summary = &summary
 }

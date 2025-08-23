@@ -77,7 +77,23 @@ func SendMessage(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "No active session found"})
 	}
 
-	// MessageService를 사용하여 사용자 메시지만 생성 및 저장
+	// 1. 먼저 사용자 메시지를 SSE로 전송
+	currentTime := time.Now()
+	userSSEMessage := SSEMessage{
+		Type:      "user",
+		Content:   req.Message,
+		Timestamp: currentTime.Format(time.RFC3339),
+		SessionID: targetSession.SessionID,
+	}
+	userSSEData, _ := json.Marshal(userSSEMessage)
+	userMessageData := fmt.Sprintf("data: %s\n\n", string(userSSEData))
+
+	// SSE 세션에 사용자 메시지 전송
+	if err := sseManager.SendMessage(targetSession.SessionID, userMessageData); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to send user message via SSE"})
+	}
+
+	// 2. SSE 전송 성공 시에만 DB에 저장
 	messageService := chat.GetMessageService()
 	userChatMessage, err := messageService.CreateUserMessage(
 		targetSession.SessionID,
@@ -87,21 +103,6 @@ func SendMessage(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	// 사용자 메시지를 SSE로 전송
-	userSSEMessage := SSEMessage{
-		Type:      "user",
-		Content:   userChatMessage.Content,
-		Timestamp: userChatMessage.CreatedAt.Format(time.RFC3339),
-		SessionID: targetSession.SessionID,
-	}
-	userSSEData, _ := json.Marshal(userSSEMessage)
-	userMessageData := fmt.Sprintf("data: %s\n\n", string(userSSEData))
-
-	// SSE 세션에 사용자 메시지 전송
-	if err := sseManager.SendMessage(targetSession.SessionID, userMessageData); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Failed to send user message via SSE"})
 	}
 
 	// 응답 반환

@@ -34,6 +34,7 @@ type ChatbotInfo struct {
 	Gender   string          `json:"gender"`
 	Details  string          `json:"details"`
 	Hashtags json.RawMessage `json:"hashtags"`
+	Summary  *string         `json:"summary"` // 추가: 요약 정보
 }
 
 // WeightedMessage 가중치가 적용된 메시지
@@ -54,70 +55,42 @@ type DataCollectionResult struct {
 
 // GenerateAnswer AI 응답 생성 및 저장
 func (ag *AnswerGenerator) GenerateAnswer(session *middleware.SSESession, combinedMessage string, openaiClient *openai.Client) *models.ChatMessage {
-	log.Printf("=== AI 응답 생성 시작 - 세션: %s ===", session.SessionID)
-	log.Printf("사용자 메시지: %s", combinedMessage)
+	// 타이핑 이벤트 시작 전송
+	ag.sendTypingEvent(session, true)
 
 	// 1. 고루틴으로 필요한 데이터 병렬 조회
-	dataResult := ag.collectDataParallel(session.UserUUID, session.ChatbotUUID, combinedMessage)
+	dataResult := ag.collectDataParallel(session.UserUUID, session.ChatbotUUID, combinedMessage, openaiClient)
 	if dataResult.Err != nil {
-		log.Printf("데이터 수집 실패 - 세션: %s, 에러: %v", session.SessionID, dataResult.Err)
+		ag.sendTypingEvent(session, false) // 타이핑 이벤트 종료
 		return nil
 	}
-
-	log.Printf("데이터 수집 완료 - 채팅봇: %s, 히스토리 수: %d, 상태정보: %v",
-		dataResult.ChatbotInfo.Name, len(dataResult.History), dataResult.UserStatus != nil)
 
 	// 2. 가중치 기반 대화 히스토리 구성
 	weightedHistory := ag.buildWeightedHistory(dataResult.History)
-	log.Printf("가중치 히스토리 구성 완료 - 메시지 수: %d", len(weightedHistory))
 
 	// 3. 초기 프롬프팅으로 응답 생성
-	log.Printf("초기 AI 응답 생성 시작...")
 	initialResponse, err := ag.generateInitialResponse(dataResult.ChatbotInfo, weightedHistory, dataResult.UserStatus, combinedMessage, openaiClient)
 	if err != nil {
-		log.Printf("초기 응답 생성 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+		ag.sendTypingEvent(session, false) // 타이핑 이벤트 종료
 		return nil
 	}
-	log.Printf("초기 AI 응답 생성 완료 - 응답 길이: %d, 내용: %s", len(initialResponse), initialResponse)
 
-	// 4. 응답 검증 및 재조정 (1번)
-	log.Printf("응답 검증 및 재조정 시작...")
-	finalResponse, err := ag.validateAndAdjustResponse(dataResult.ChatbotInfo, dataResult.UserStatus, combinedMessage, initialResponse, openaiClient)
-	if err != nil {
-		log.Printf("응답 검증 및 재조정 실패 - 세션: %s, 에러: %v", session.SessionID, err)
-		// 재조정 실패시 초기 응답 사용
-		finalResponse = initialResponse
-		log.Printf("초기 응답을 최종 응답으로 사용 - 응답: %s", finalResponse)
-	} else {
-		log.Printf("응답 검증 및 재조정 완료 - 최종 응답 길이: %d, 내용: %s", len(finalResponse), finalResponse)
-	}
+	// 4. 응답 검증 및 재조정 (2단계)
+	finalResponse := ag.validateAndAdjustResponse(dataResult.ChatbotInfo, dataResult.UserStatus, initialResponse, combinedMessage, openaiClient)
 
-	// 최종 응답 검증 - 빈 응답인 경우 초기 응답 사용
+	// 최종 응답 검증 - 빈 응답인 경우 처리
 	if strings.TrimSpace(finalResponse) == "" {
-		log.Printf("재조정된 응답이 빈 값입니다. 초기 응답을 사용합니다.")
-		finalResponse = initialResponse
-		log.Printf("빈 응답 대체 - 최종 응답: %s", finalResponse)
+		ag.sendTypingEvent(session, false) // 타이핑 이벤트 종료
+		return nil
 	}
 
 	// 최종 응답 길이 검증
 	if len(strings.TrimSpace(finalResponse)) < 1 {
-		log.Printf("재조정된 응답이 너무 짧습니다. 초기 응답을 사용합니다.")
-		finalResponse = initialResponse
-		log.Printf("짧은 응답 대체 - 최종 응답: %s", finalResponse)
+		ag.sendTypingEvent(session, false) // 타이핑 이벤트 종료
+		return nil
 	}
 
-	// 6. 문법 및 맞춤법 검증 및 수정
-	log.Printf("문법 및 맞춤법 검증 시작...")
-	grammarFixedResponse := ag.validateAndFixGrammar(finalResponse, openaiClient)
-	if grammarFixedResponse != finalResponse {
-		log.Printf("문법 수정 완료 - 수정 전: %s, 수정 후: %s", finalResponse, grammarFixedResponse)
-		finalResponse = grammarFixedResponse
-	} else {
-		log.Printf("문법 검증 완료 - 수정 불필요")
-	}
-
-	// 7. 봇 메시지 저장
-	log.Printf("봇 메시지 저장 시작...")
+	// 4. 봇 메시지 저장
 	botChatMessage, err := ag.messageService.CreateBotMessage(
 		session.SessionID,
 		session.UserUUID,
@@ -126,21 +99,51 @@ func (ag *AnswerGenerator) GenerateAnswer(session *middleware.SSESession, combin
 	)
 
 	if err != nil {
-		log.Printf("봇 메시지 저장 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+		ag.sendTypingEvent(session, false) // 타이핑 이벤트 종료
 		return nil
 	}
 
-	log.Printf("봇 메시지 저장 완료 - UUID: %s, 내용: %s", botChatMessage.UUID, botChatMessage.Content)
-	log.Printf("=== AI 응답 생성 완료 - 세션: %s ===", session.SessionID)
+	// 타이핑 이벤트 종료 전송
+	ag.sendTypingEvent(session, false)
 
 	return botChatMessage
 }
 
-// collectDataParallel 고루틴으로 필요한 데이터를 병렬로 수집
-func (ag *AnswerGenerator) collectDataParallel(userUUID, chatbotUUID, currentMessage string) *DataCollectionResult {
-	log.Printf("=== 데이터 병렬 수집 시작 ===")
-	log.Printf("사용자 UUID: %s, 채팅봇 UUID: %s", userUUID, chatbotUUID)
+// sendTypingEvent 타이핑 이벤트 전송
+func (ag *AnswerGenerator) sendTypingEvent(session *middleware.SSESession, isTyping bool) {
+	// 타이핑 이벤트 메시지 생성
+	typingEvent := map[string]interface{}{
+		"type":       "bot_typing",
+		"is_typing":  isTyping,
+		"session_id": session.SessionID,
+		"timestamp":  time.Now().Format(time.RFC3339),
+	}
 
+	// JSON으로 직렬화
+	eventData, err := json.Marshal(typingEvent)
+	if err != nil {
+		log.Printf("타이핑 이벤트 직렬화 실패: %v", err)
+		return
+	}
+
+	// SSE 형식으로 변환
+	sseMessage := "data: " + string(eventData) + "\n\n"
+
+	// 세션 채널로 이벤트 전송
+	select {
+	case session.Channel <- sseMessage:
+		if isTyping {
+			log.Printf("봇 타이핑 시작 이벤트 전송 - 세션: %s", session.SessionID)
+		} else {
+			log.Printf("봇 타이핑 종료 이벤트 전송 - 세션: %s", session.SessionID)
+		}
+	default:
+		log.Printf("세션 채널이 가득 참 - 타이핑 이벤트 전송 실패 - 세션: %s", session.SessionID)
+	}
+}
+
+// collectDataParallel 고루틴으로 필요한 데이터를 병렬로 수집
+func (ag *AnswerGenerator) collectDataParallel(userUUID, chatbotUUID, currentMessage string, openaiClient *openai.Client) *DataCollectionResult {
 	result := &DataCollectionResult{}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -149,14 +152,11 @@ func (ag *AnswerGenerator) collectDataParallel(userUUID, chatbotUUID, currentMes
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("채팅봇 정보 조회 시작...")
-		chatbotInfo, err := ag.getChatbotInfo(chatbotUUID)
+		chatbotInfo, err := ag.getChatbotInfo(chatbotUUID, openaiClient)
 		mu.Lock()
 		if err != nil {
-			log.Printf("채팅봇 정보 조회 실패: %v", err)
 			result.Err = fmt.Errorf("채팅봇 정보 조회 실패: %w", err)
 		} else {
-			log.Printf("채팅봇 정보 조회 성공 - 이름: %s, 성별: %s", chatbotInfo.Name, chatbotInfo.Gender)
 			result.ChatbotInfo = chatbotInfo
 		}
 		mu.Unlock()
@@ -166,14 +166,11 @@ func (ag *AnswerGenerator) collectDataParallel(userUUID, chatbotUUID, currentMes
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("대화 히스토리 조회 시작...")
-		history, err := ag.messageService.GetChatHistory(userUUID, chatbotUUID, 20)
+		history, err := ag.messageService.GetChatHistory(userUUID, chatbotUUID, 10) // 20개에서 10개로 줄임
 		mu.Lock()
 		if err != nil {
-			log.Printf("대화 히스토리 조회 실패: %v", err)
 			result.Err = fmt.Errorf("대화 히스토리 조회 실패: %w", err)
 		} else {
-			log.Printf("대화 히스토리 조회 성공 - 메시지 수: %d", len(history))
 			result.History = history
 		}
 		mu.Unlock()
@@ -183,50 +180,57 @@ func (ag *AnswerGenerator) collectDataParallel(userUUID, chatbotUUID, currentMes
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Printf("사용자 상태 정보 조회 시작...")
 		userStatus, err := ag.getRelevantUserStatus(userUUID, chatbotUUID, currentMessage)
 		mu.Lock()
 		if err != nil {
 			// 상태 정보 없어도 계속 진행 (에러가 아님)
-			log.Printf("사용자 상태 정보 없음 또는 맥락 불일치: %v", err)
 		} else {
-			log.Printf("사용자 상태 정보 조회 성공 - 이벤트: %s, 컨텍스트: %s", userStatus.Event, userStatus.Context)
 			result.UserStatus = userStatus
 		}
 		mu.Unlock()
 	}()
 
 	wg.Wait()
-	log.Printf("=== 데이터 병렬 수집 완료 ===")
 
 	// 에러가 있으면 반환
 	if result.Err != nil {
-		log.Printf("데이터 수집 중 에러 발생: %v", result.Err)
 		return result
 	}
 
 	// 필수 데이터 검증
 	if result.ChatbotInfo == nil {
-		log.Printf("채팅봇 정보가 없습니다")
 		result.Err = fmt.Errorf("채팅봇 정보가 없습니다")
 		return result
 	}
 
 	if len(result.History) == 0 {
-		log.Printf("대화 히스토리가 없습니다")
 		result.Err = fmt.Errorf("대화 히스토리가 없습니다")
 		return result
 	}
 
-	log.Printf("데이터 검증 통과 - 모든 필수 데이터 수집 완료")
 	return result
 }
 
 // getChatbotInfo 채팅봇 정보 조회
-func (ag *AnswerGenerator) getChatbotInfo(chatbotUUID string) (*ChatbotInfo, error) {
+func (ag *AnswerGenerator) getChatbotInfo(chatbotUUID string, openaiClient *openai.Client) (*ChatbotInfo, error) {
 	var chatbot models.Chatbot
 	if err := database.DB.Where("uuid = ?", chatbotUUID).First(&chatbot).Error; err != nil {
 		return nil, fmt.Errorf("채팅봇 조회 실패: %w", err)
+	}
+
+	// 요약이 없으면 AI로 생성
+	if chatbot.GetSummary() == nil {
+		summary := ag.generateCharacterSummary(&chatbot, openaiClient)
+
+		// 생성된 요약을 Chatbot 모델에 설정
+		chatbot.SetSummary(summary)
+
+		// 생성된 요약을 DB에 저장
+		if err := database.DB.Model(&chatbot).Update("summary", summary).Error; err != nil {
+			log.Printf("요약 저장 실패: %v", err)
+		} else {
+			log.Printf("요약 생성 및 저장 완료 - 길이: %d", len(summary))
+		}
 	}
 
 	return &ChatbotInfo{
@@ -234,6 +238,7 @@ func (ag *AnswerGenerator) getChatbotInfo(chatbotUUID string) (*ChatbotInfo, err
 		Gender:   string(chatbot.Gender),
 		Details:  chatbot.Details,
 		Hashtags: chatbot.Hashtags,
+		Summary:  chatbot.Summary, // 요약 정보 추가
 	}, nil
 }
 
@@ -243,20 +248,20 @@ func (ag *AnswerGenerator) buildWeightedHistory(history []models.ChatMessage) []
 	totalMessages := len(history)
 
 	for i, msg := range history {
-		weight := 0.3 // 기본 가중치를 낮게 설정
+		weight := 0.2 // 기본 가중치를 더 낮게 설정
 		isRecent := false
 
 		// 최근 메시지일수록 높은 가중치 (최근 메시지 우선)
 		if i == totalMessages-1 {
 			weight = 1.0 // 가장 최근 메시지는 최고 가중치
 			isRecent = true
-		} else if i >= totalMessages-3 {
-			weight = 0.8 // 최근 3개 메시지는 높은 가중치
+		} else if i >= totalMessages-2 {
+			weight = 0.9 // 최근 2개 메시지는 높은 가중치
 			isRecent = true
-		} else if i >= totalMessages-8 {
-			weight = 0.5 // 중간 가중치
+		} else if i >= totalMessages-5 {
+			weight = 0.6 // 중간 가중치
 		} else {
-			weight = 0.3 // 오래된 메시지는 낮은 가중치 (문맥 파악용)
+			weight = 0.2 // 오래된 메시지는 낮은 가중치 (문맥 파악용)
 		}
 
 		role := "user"
@@ -308,30 +313,20 @@ func (ag *AnswerGenerator) isContextRelevant(currentMessage, event, context stri
 	return false
 }
 
-// summarizeCharacterDetails 캐릭터 상세 정보를 핵심 특징으로 요약
-func (ag *AnswerGenerator) summarizeCharacterDetails(chatbotInfo *ChatbotInfo, openaiClient *openai.Client) string {
+// generateCharacterSummary AI를 이용해 캐릭터 상세 정보를 요약
+func (ag *AnswerGenerator) generateCharacterSummary(chatbotInfo *models.Chatbot, openaiClient *openai.Client) string {
 	// 상세 정보가 짧으면 요약 불필요
 	if len(chatbotInfo.Details) < 200 {
 		return chatbotInfo.Details
 	}
 
-	log.Printf("캐릭터 상세 정보 요약 시작 - 길이: %d", len(chatbotInfo.Details))
-
-	// 요약 프롬프트 구성
-	summaryPrompt := fmt.Sprintf(`다음은 AI 채팅봇의 상세한 성격 설명입니다. 
-이를 3-4개의 핵심 특징과 간단한 세계관 설정으로 요약해주세요.
-요약은 100자 이내로 작성하고, 한국어로 답변해주세요.
-
-채팅봇 이름: %s
-성별: %s
-상세 설명: %s
-
-핵심 특징과 세계관:`, chatbotInfo.Name, chatbotInfo.Gender, chatbotInfo.Details)
+	// 요약 프롬프트 구성 (pkg/prompt 사용)
+	summaryPrompt := prompt.BuildCharacterSummaryPrompt(chatbotInfo.Name, string(chatbotInfo.Gender), chatbotInfo.Details)
 
 	var messages []openai.ChatMessage
 	messages = append(messages, openai.ChatMessage{
 		Role:    "system",
-		Content: "당신은 AI 채팅봇의 성격을 간결하게 요약하는 전문가입니다.",
+		Content: "You are an expert at analyzing and summarizing AI chatbot personalities. Focus on capturing the character's unique speech patterns, vocabulary choices, and communication style. Create summaries that highlight what makes each character distinct in how they talk and express themselves.",
 	})
 	messages = append(messages, openai.ChatMessage{
 		Role:    "user",
@@ -344,17 +339,13 @@ func (ag *AnswerGenerator) summarizeCharacterDetails(chatbotInfo *ChatbotInfo, o
 
 	response, err := openaiClient.ChatCompletion(ctx, messages)
 	if err != nil {
-		log.Printf("캐릭터 요약 생성 실패: %v, 원본 상세 정보 사용", err)
 		return chatbotInfo.Details
 	}
 
 	summary := strings.TrimSpace(response.Message.Content)
-	log.Printf("캐릭터 요약 완료 - 원본 길이: %d, 요약 길이: %d", len(chatbotInfo.Details), len(summary))
-	log.Printf("요약된 내용: %s", summary)
 
 	// 요약이 실패하거나 빈 문자열인 경우 원본 사용
-	if summary == "" || len(summary) < 10 {
-		log.Printf("캐릭터 요약 실패 또는 너무 짧음 - 원본 상세 정보 사용")
+	if summary == "" || len(summary) < 5 {
 		return chatbotInfo.Details
 	}
 
@@ -363,32 +354,77 @@ func (ag *AnswerGenerator) summarizeCharacterDetails(chatbotInfo *ChatbotInfo, o
 
 // convertToPromptChatbotInfo ChatbotInfo를 prompt.ChatbotInfo로 변환
 func convertToPromptChatbotInfo(chatbotInfo *ChatbotInfo, openaiClient *openai.Client) *prompt.ChatbotInfo {
-	// 캐릭터 상세 정보 요약
-	summarizedDetails := chatbotInfo.Details
-	if openaiClient != nil {
-		// AnswerGenerator 인스턴스 생성하여 요약 함수 호출
-		ag := &AnswerGenerator{}
-		summarizedDetails = ag.summarizeCharacterDetails(chatbotInfo, openaiClient)
+	// 요약이 있으면 요약 사용, 없으면 상세 정보 사용
+	details := chatbotInfo.Details
+	if chatbotInfo.Summary != nil && *chatbotInfo.Summary != "" {
+		details = *chatbotInfo.Summary
 	}
 
 	return &prompt.ChatbotInfo{
 		Name:     chatbotInfo.Name,
 		Gender:   chatbotInfo.Gender,
-		Details:  summarizedDetails,
+		Details:  details,
 		Hashtags: chatbotInfo.Hashtags,
 	}
+}
+
+// validateAndAdjustResponse 2단계: 응답 검증 및 재조정
+func (ag *AnswerGenerator) validateAndAdjustResponse(chatbotInfo *ChatbotInfo, userStatus *models.UserStatus, initialResponse, currentMessage string, openaiClient *openai.Client) string {
+	// ChatbotInfo를 prompt.ChatbotInfo로 변환
+	promptChatbotInfo := convertToPromptChatbotInfo(chatbotInfo, openaiClient)
+
+	// 검증 프롬프트 구성
+	validationPrompt := prompt.BuildValidationPrompt(promptChatbotInfo, userStatus, currentMessage, initialResponse)
+
+	// 영어 응답 강제 지시 추가
+	validationPrompt += "\n\nCRITICAL: The response MUST be in English only. If the response is in Korean or any other language, convert it to natural English while maintaining the same meaning and tone."
+
+	// 캐릭터의 고유한 말투와 성격 유지 강조
+	validationPrompt += "\n\nCHARACTER AUTHENTICITY CHECK: Ensure the response maintains the character's unique speech patterns, vocabulary, and personality. If the response feels generic or doesn't match the character's established traits, adjust it to be more authentic to this specific character. Preserve any catchphrases or unique expressions that make the character distinct."
+
+	// 검증 요청을 위한 메시지 구성
+	validationMessages := []openai.ChatMessage{
+		{
+			Role:    "system",
+			Content: "당신은 AI 응답을 검증하고 재조정하는 전문가입니다. 친구다운 자연스러운 대화가 되도록 검증하고 필요시 수정해주세요.",
+		},
+		{
+			Role:    "user",
+			Content: validationPrompt,
+		},
+	}
+
+	// 검증 API 호출
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	response, err := openaiClient.ChatCompletion(ctx, validationMessages)
+	if err != nil {
+		return initialResponse // 실패시 원본 응답 사용
+	}
+
+	finalResponse := strings.TrimSpace(response.Message.Content)
+
+	// 검증 결과가 빈 값이거나 너무 짧으면 원본 사용
+	if finalResponse == "" || len(finalResponse) < 5 {
+		return initialResponse
+	}
+
+	return finalResponse
 }
 
 // generateInitialResponse 초기 프롬프팅으로 응답 생성
 func (ag *AnswerGenerator) generateInitialResponse(chatbotInfo *ChatbotInfo, weightedHistory []WeightedMessage,
 	userStatus *models.UserStatus, currentMessage string, openaiClient *openai.Client) (string, error) {
 
-	log.Printf("=== 초기 AI 응답 생성 상세 과정 ===")
-
 	// 시스템 프롬프트 구성 (pkg/prompt 사용)
 	systemPrompt := prompt.BuildSystemPrompt(convertToPromptChatbotInfo(chatbotInfo, openaiClient), userStatus)
-	log.Printf("시스템 프롬프트 구성 완료 - 길이: %d", len(systemPrompt))
-	log.Printf("시스템 프롬프트 내용: %s", systemPrompt)
+
+	// 영어 응답 강제 프롬프트 추가
+	systemPrompt += "\n\nIMPORTANT INSTRUCTION: You MUST respond in English only. Do not use Korean, Japanese, or any other language. Always use natural, conversational English that matches your character's personality."
+
+	// 캐릭터의 고유한 말투와 성격 유지 강조
+	systemPrompt += "\n\nCHARACTER CONSISTENCY: Stay true to your character's unique speech patterns, vocabulary, and personality. If you have specific catchphrases, speaking habits, or unique expressions, use them naturally. Avoid generic responses - make every response feel authentic to your specific character. Maintain your character's background, age, and personality traits throughout the conversation."
 
 	// 대화 컨텍스트 구성
 	var messages []openai.ChatMessage
@@ -398,19 +434,15 @@ func (ag *AnswerGenerator) generateInitialResponse(chatbotInfo *ChatbotInfo, wei
 	})
 
 	// 가중치가 높은 메시지부터 추가 (최근 메시지 우선)
-	log.Printf("대화 히스토리 메시지 구성 시작...")
 	// 최근 메시지부터 역순으로 추가하여 최신 메시지가 마지막에 오도록 함
 	for i := len(weightedHistory) - 1; i >= 0; i-- {
 		msg := weightedHistory[i]
-		// 빈 내용이나 너무 짧은 메시지는 제외
-		if msg.Weight >= 0.5 && strings.TrimSpace(msg.Content) != "" && len(strings.TrimSpace(msg.Content)) > 2 {
+		// 가중치 기준을 더 엄격하게 설정하여 메시지 수 줄임
+		if msg.Weight >= 0.7 && strings.TrimSpace(msg.Content) != "" && len(strings.TrimSpace(msg.Content)) > 2 {
 			messages = append(messages, openai.ChatMessage{
 				Role:    msg.Role,
 				Content: msg.Content,
 			})
-			log.Printf("히스토리 메시지 추가 - Role: %s, Weight: %.1f, Content: %s", msg.Role, msg.Weight, msg.Content)
-		} else {
-			log.Printf("히스토리 메시지 제외 - Role: %s, Weight: %.1f, Content: %s (빈 내용 또는 가중치 부족)", msg.Role, msg.Weight, msg.Content)
 		}
 	}
 
@@ -419,153 +451,24 @@ func (ag *AnswerGenerator) generateInitialResponse(chatbotInfo *ChatbotInfo, wei
 		Role:    "user",
 		Content: currentMessage,
 	})
-	log.Printf("현재 사용자 메시지 추가 (최우선) - Content: %s", currentMessage)
-
-	log.Printf("최종 메시지 구성 완료 - 총 메시지 수: %d", len(messages))
-	log.Printf("메시지 순서: 시스템 프롬프트 -> 히스토리 -> 최근 사용자 메시지")
 
 	// 메시지 검증 - 모든 content가 유효한지 확인
 	for i, msg := range messages {
 		if strings.TrimSpace(msg.Content) == "" {
-			log.Printf("경고: 메시지 %d의 content가 빈 값입니다 - Role: %s", i, msg.Role)
 			return "", fmt.Errorf("메시지 %d의 content가 빈 값입니다", i)
 		}
 		if len(strings.TrimSpace(msg.Content)) < 1 {
-			log.Printf("경고: 메시지 %d의 content가 너무 짧습니다 - Role: %s, Content: %s", i, msg.Role, msg.Content)
 			return "", fmt.Errorf("메시지 %d의 content가 너무 짧습니다: %s", msg.Content)
 		}
 	}
-	log.Printf("모든 메시지 검증 통과")
 
 	// AI 응답 생성
-	log.Printf("OpenAI API 호출 시작...")
 	response, err := openaiClient.ChatCompletion(context.Background(), messages)
 	if err != nil {
-		log.Printf("OpenAI API 호출 실패: %v", err)
 		return "", fmt.Errorf("AI 응답 생성 실패: %w", err)
 	}
-
-	log.Printf("OpenAI API 응답 수신 - 응답 길이: %d", len(response.Message.Content))
-	log.Printf("OpenAI API 응답 내용: %s", response.Message.Content)
 
 	return response.Message.Content, nil
 }
 
-// validateAndFixGrammar 문법과 맞춤법을 검증하고 수정
-func (ag *AnswerGenerator) validateAndFixGrammar(response string, openaiClient *openai.Client) string {
-	// 응답이 너무 짧으면 검증 불필요
-	if len(strings.TrimSpace(response)) < 5 {
-		return response
-	}
-
-	log.Printf("문법 및 맞춤법 검증 시작 - 응답 길이: %d", len(response))
-
-	// 문법 검증 프롬프트 구성
-	grammarPrompt := fmt.Sprintf(`다음 한국어 응답의 문법과 맞춤법을 검증하고 수정해주세요.
-잘못된 부분이 있다면 수정하고, 맞다면 원본을 그대로 반환하세요.
-수정 시에는 자연스럽게 수정하고, 원본의 의미와 톤을 유지해주세요.
-
-원본 응답:
-%s
-
-수정된 응답:`, response)
-
-	var messages []openai.ChatMessage
-	messages = append(messages, openai.ChatMessage{
-		Role:    "system",
-		Content: "당신은 한국어 문법과 맞춤법을 검증하고 수정하는 전문가입니다. 자연스럽게 수정하고, 원본의 의미를 유지해주세요.",
-	})
-	messages = append(messages, openai.ChatMessage{
-		Role:    "user",
-		Content: grammarPrompt,
-	})
-
-	// OpenAI API 호출하여 문법 검증 및 수정
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	grammarResponse, err := openaiClient.ChatCompletion(ctx, messages)
-	if err != nil {
-		log.Printf("문법 검증 실패: %v, 원본 응답 사용", err)
-		return response
-	}
-
-	fixedResponse := strings.TrimSpace(grammarResponse.Message.Content)
-
-	// 수정된 응답이 빈 값이거나 너무 짧으면 원본 사용
-	if fixedResponse == "" || len(fixedResponse) < 3 {
-		log.Printf("문법 검증 결과가 유효하지 않음 - 원본 응답 사용")
-		return response
-	}
-
-	// 원본과 동일하면 수정 불필요
-	if fixedResponse == response {
-		log.Printf("문법 검증 완료 - 수정 불필요")
-		return response
-	}
-
-	log.Printf("문법 검증 완료 - 수정됨")
-	log.Printf("원본: %s", response)
-	log.Printf("수정: %s", fixedResponse)
-
-	return fixedResponse
-}
-
-// validateAndAdjustResponse 응답 검증 및 재조정 (1번)
-func (ag *AnswerGenerator) validateAndAdjustResponse(chatbotInfo *ChatbotInfo, userStatus *models.UserStatus,
-	currentMessage, initialResponse string, openaiClient *openai.Client) (string, error) {
-
-	log.Printf("=== 응답 검증 및 재조정 상세 과정 ===")
-
-	// 검증 프롬프트 구성 (pkg/prompt 사용)
-	validationPrompt := prompt.BuildValidationPrompt(convertToPromptChatbotInfo(chatbotInfo, openaiClient), userStatus, currentMessage, initialResponse)
-	log.Printf("검증 프롬프트 구성 완료 - 길이: %d", len(validationPrompt))
-	log.Printf("검증 프롬프트 내용: %s", validationPrompt)
-
-	var messages []openai.ChatMessage
-	messages = append(messages, openai.ChatMessage{
-		Role:    "system",
-		Content: validationPrompt,
-	})
-
-	log.Printf("검증용 메시지 구성 완료 - 메시지 수: %d", len(messages))
-
-	// 메시지 검증 - 모든 content가 유효한지 확인
-	for i, msg := range messages {
-		if strings.TrimSpace(msg.Content) == "" {
-			log.Printf("경고: 검증 메시지 %d의 content가 빈 값입니다 - Role: %s", i, msg.Role)
-			return "", fmt.Errorf("검증 메시지 %d의 content가 빈 값입니다", i)
-		}
-		if len(strings.TrimSpace(msg.Content)) < 1 {
-			log.Printf("경고: 검증 메시지 %d의 content가 너무 짧습니다 - Role: %s, Content: %s", i, msg.Role, msg.Content)
-			return "", fmt.Errorf("검증 메시지 %d의 content가 너무 짧습니다: %s", msg.Content)
-		}
-	}
-	log.Printf("모든 검증 메시지 검증 통과")
-
-	// AI 응답 재조정
-	log.Printf("OpenAI API 재조정 호출 시작...")
-	response, err := openaiClient.ChatCompletion(context.Background(), messages)
-	if err != nil {
-		log.Printf("OpenAI API 재조정 호출 실패: %v", err)
-		return "", fmt.Errorf("응답 재조정 실패: %w", err)
-	}
-
-	log.Printf("OpenAI API 재조정 응답 수신 - 응답 길이: %d", len(response.Message.Content))
-	log.Printf("OpenAI API 재조정 응답 내용: %s", response.Message.Content)
-
-	// 재조정된 응답 검증
-	adjustedResponse := strings.TrimSpace(response.Message.Content)
-	if adjustedResponse == "" {
-		log.Printf("경고: 재조정된 응답이 빈 값입니다!")
-		return "", fmt.Errorf("재조정된 응답이 빈 값입니다")
-	}
-
-	if len(adjustedResponse) < 5 {
-		log.Printf("경고: 재조정된 응답이 너무 짧습니다! 길이: %d", len(adjustedResponse))
-		return "", fmt.Errorf("재조정된 응답이 너무 짧습니다: %s", adjustedResponse)
-	}
-
-	log.Printf("재조정된 응답 검증 통과 - 길이: %d", len(adjustedResponse))
-	return adjustedResponse, nil
-}
+// convertToPromptChatbotInfo ChatbotInfo를 prompt.ChatbotInfo로 변환
