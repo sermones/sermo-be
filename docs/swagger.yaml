@@ -102,6 +102,36 @@ definitions:
       message:
         type: string
     type: object
+  chatbot.DeleteChatbotResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  chatbot.UpdateChatbotRequest:
+    properties:
+      details:
+        description: 상세 설명
+        type: string
+      gender:
+        description: 성별 (male, female, unspecified)
+        type: string
+      hashtags:
+        description: 해시태그 배열
+        items:
+          type: string
+        type: array
+      image_id:
+        description: 사진 ID
+        type: string
+      name:
+        description: 채팅봇 이름 (3-100자)
+        type: string
+    type: object
+  chatbot.UpdateChatbotResponse:
+    properties:
+      message:
+        type: string
+    type: object
   image.DeleteImageRequest:
     properties:
       image_id:
@@ -296,6 +326,43 @@ paths:
       tags:
       - Chatbot
   /chatbot/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 특정 채팅봇 ID로 채팅봇을 삭제합니다.
+      parameters:
+      - description: 채팅봇 UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/chatbot.DeleteChatbotResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 채팅봇 삭제
+      tags:
+      - Chatbot
     get:
       consumes:
       - application/json
@@ -331,6 +398,49 @@ paths:
       security:
       - BearerAuth: []
       summary: 채팅봇 ID로 조회
+      tags:
+      - Chatbot
+    put:
+      consumes:
+      - application/json
+      description: 특정 채팅봇 ID로 채팅봇 내용을 수정합니다. UUID와 UserID는 변경할 수 없습니다.
+      parameters:
+      - description: 채팅봇 UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 수정할 채팅봇 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chatbot.UpdateChatbotRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/chatbot.UpdateChatbotResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 채팅봇 수정
       tags:
       - Chatbot
   /image/{image_id}:

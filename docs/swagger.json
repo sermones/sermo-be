@@ -262,6 +262,127 @@
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "특정 채팅봇 ID로 채팅봇 내용을 수정합니다. UUID와 UserID는 변경할 수 없습니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "채팅봇 수정",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "채팅봇 UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "수정할 채팅봇 정보",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/chatbot.UpdateChatbotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chatbot.UpdateChatbotResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "특정 채팅봇 ID로 채팅봇을 삭제합니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chatbot"
+                ],
+                "summary": "채팅봇 삭제",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "채팅봇 UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/chatbot.DeleteChatbotResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/image/delete": {
@@ -713,6 +834,50 @@
                 "chatbot_id": {
                     "type": "string"
                 },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "chatbot.DeleteChatbotResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "chatbot.UpdateChatbotRequest": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "description": "상세 설명",
+                    "type": "string"
+                },
+                "gender": {
+                    "description": "성별 (male, female, unspecified)",
+                    "type": "string"
+                },
+                "hashtags": {
+                    "description": "해시태그 배열",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "image_id": {
+                    "description": "사진 ID",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "채팅봇 이름 (3-100자)",
+                    "type": "string"
+                }
+            }
+        },
+        "chatbot.UpdateChatbotResponse": {
+            "type": "object",
+            "properties": {
                 "message": {
                     "type": "string"
                 }

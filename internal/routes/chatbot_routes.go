@@ -20,4 +20,10 @@ func SetupChatbotRoutes(app *fiber.App) {
 
 	// 특정 채팅봇 ID로 조회
 	chatbotGroup.Get("/:id", chatbot.FindChatbotByID)
+
+	// 특정 채팅봇 ID로 수정
+	chatbotGroup.Put("/:id", chatbot.UpdateChatbot)
+
+	// 특정 채팅봇 ID로 삭제
+	chatbotGroup.Delete("/:id", chatbot.DeleteChatbot)
 }
