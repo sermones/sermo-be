@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ type SSESession struct {
 	UserUUID    string
 	ChatbotUUID string
 	Channel     chan string
+	Done        chan struct{} // 종료 신호 전송용 채널
 	CreatedAt   time.Time
 	IsActive    bool
 }
@@ -56,6 +58,7 @@ func (sm *SSEManager) CreateSession(userUUID, chatbotUUID string) (*SSESession, 
 		UserUUID:    userUUID,
 		ChatbotUUID: chatbotUUID,
 		Channel:     make(chan string, 100), // 버퍼 크기 100
+		Done:        make(chan struct{}),
 		CreatedAt:   time.Now(),
 		IsActive:    true,
 	}
@@ -73,7 +76,7 @@ func (sm *SSEManager) GetSession(sessionID string) (*SSESession, bool) {
 	return session, exists
 }
 
-// StopSession 세션 중단
+// StopSession 세션 중단 (핸들러 고루틴에 종료 신호 전송)
 func (sm *SSEManager) StopSession(sessionID string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -89,7 +92,45 @@ func (sm *SSEManager) StopSession(sessionID string) error {
 
 	// 세션 비활성화
 	session.IsActive = false
+
+	// 핸들러 고루틴에 종료 신호 전송
+	select {
+	case session.Done <- struct{}{}:
+		// 종료 신호 전송 성공
+	default:
+		// 채널이 가득 찬 경우 (거의 발생하지 않음)
+	}
+
+	// 채널들 닫기
 	close(session.Channel)
+	close(session.Done)
+
+	// 세션 제거
+	delete(sm.sessions, sessionID)
+
+	return nil
+}
+
+// DeleteSession 세션 제거 (종료 신호 없이 단순 제거)
+func (sm *SSEManager) DeleteSession(sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fiber.NewError(fiber.StatusNotFound, "Session not found")
+	}
+
+	if !session.IsActive {
+		return fiber.NewError(fiber.StatusBadRequest, "Session already stopped")
+	}
+
+	// 세션 비활성화
+	session.IsActive = false
+
+	// 채널들 닫기
+	close(session.Channel)
+	close(session.Done)
 
 	// 세션 제거
 	delete(sm.sessions, sessionID)
@@ -146,14 +187,56 @@ func (sm *SSEManager) CleanupInactiveSessions() {
 	defer sm.mutex.Unlock()
 
 	now := time.Now()
+	var sessionsToDelete []string
+
+	// 삭제할 세션 ID 수집
 	for sessionID, session := range sm.sessions {
 		// 30분 이상 비활성인 세션 정리
 		if now.Sub(session.CreatedAt) > 30*time.Minute {
-			session.IsActive = false
-			close(session.Channel)
-			delete(sm.sessions, sessionID)
+			sessionsToDelete = append(sessionsToDelete, sessionID)
 		}
 	}
+
+	// 뮤텍스 해제 후 DeleteSession 호출
+	sm.mutex.Unlock()
+
+	for _, sessionID := range sessionsToDelete {
+		sm.DeleteSession(sessionID)
+	}
+}
+
+// Shutdown 모든 SSE 세션 정리 (서버 종료 시 사용)
+func (sm *SSEManager) Shutdown() {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	log.Printf("SSE Manager 종료 시작 - 활성 세션 수: %d", len(sm.sessions))
+
+	// 모든 활성 세션에 종료 신호 전송
+	for sessionID, session := range sm.sessions {
+		if session.IsActive {
+			log.Printf("세션 종료 신호 전송 - 세션: %s", sessionID)
+
+			// 세션 비활성화
+			session.IsActive = false
+
+			// 핸들러 고루틴에 종료 신호 전송
+			select {
+			case session.Done <- struct{}{}:
+				// 종료 신호 전송 성공
+			default:
+				// 채널이 가득 찬 경우
+			}
+
+			// 채널들 닫기
+			close(session.Channel)
+			close(session.Done)
+		}
+	}
+
+	// 세션 맵 초기화
+	sm.sessions = make(map[string]*SSESession)
+	log.Printf("SSE Manager 종료 완료")
 }
 
 // 전역 SSE 매니저 인스턴스

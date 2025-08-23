@@ -110,6 +110,12 @@ func main() {
 	<-quit
 
 	log.Println("🛑 서버를 종료합니다...")
+
+	// SSE 세션 정리
+	log.Println("🔄 SSE 세션 정리 중...")
+	sseManager := middleware.GetSSEManager()
+	sseManager.Shutdown()
+
 	if err := app.Shutdown(); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)
 	}

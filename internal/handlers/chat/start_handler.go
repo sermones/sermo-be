@@ -58,26 +58,40 @@ func StartChat(c *fiber.Ctx) error {
 		defer ticker.Stop()
 
 		// 세션이 활성화되어 있는 동안 메시지 수신 대기
+		log.Printf("SSE 루프 시작 - 세션: %s, IsActive: %v", session.SessionID, session.IsActive)
 		for session.IsActive {
 			select {
 			case message := <-session.Channel:
 				// 메시지 전송 (봇 응답 등)
+				log.Printf("메시지 수신 - 세션: %s, 메시지: %s", session.SessionID, message)
 				data := fmt.Sprintf("data: %s\n\n", message)
-				w.Write([]byte(data))
+				_, err := w.Write([]byte(data))
+				if err != nil {
+					log.Printf("메시지 전송 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+					sseManager.DeleteSession(session.SessionID)
+					return
+				}
 				w.Flush()
 
 			case <-ticker.C:
 				// heartbeat 전송
+				log.Printf("heartbeat 전송 - 세션: %s", session.SessionID)
 				heartbeat := fmt.Sprintf("data: %s\n\n", "heartbeat")
-				w.Write([]byte(heartbeat))
+				_, err := w.Write([]byte(heartbeat))
+				if err != nil {
+					log.Printf("heartbeat 전송 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+					sseManager.DeleteSession(session.SessionID)
+					return
+				}
 				w.Flush()
 
-			case <-c.Context().Done():
-				// 클라이언트 연결 종료
-				log.Printf("클라이언트 연결 종료 - 세션: %s", session.SessionID)
-				sseManager.StopSession(session.SessionID)
+			case <-session.Done:
+				// SSE Manager에서 전송한 종료 신호
+				log.Printf("SSE Manager에서 세션 종료 신호 수신 - 세션: %s", session.SessionID)
 				return
 			}
+			// 루프 상태 로깅
+			log.Printf("루프 반복 - 세션: %s, IsActive: %v", session.SessionID, session.IsActive)
 		}
 
 		log.Printf("SSE 스트림 종료 - 세션: %s", session.SessionID)
