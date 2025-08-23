@@ -88,6 +88,7 @@ func RunMigrations() error {
 		&models.ChatMessage{},
 		&models.SentenceBookmark{},
 		&models.WordBookmark{},
+		&models.UserStatus{},
 	}
 
 	err := DB.AutoMigrate(models...)

@@ -7,9 +7,11 @@ import (
 	"log"
 	"time"
 
+	"sermo-be/internal/core/status"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
 	"sermo-be/pkg/openai"
+	"sermo-be/pkg/prompt"
 )
 
 // BotMessage 봇 메시지 구조
@@ -38,17 +40,24 @@ type OnKeyboardMessage struct {
 // BotGoroutine 봇 고루틴 관리자
 type BotGoroutine struct {
 	messageService *MessageService
+	statusService  *status.StatusService
+	openaiClient   *openai.Client
 }
 
 // NewBotGoroutine 새로운 봇 고루틴 관리자 생성
 func NewBotGoroutine() *BotGoroutine {
 	return &BotGoroutine{
 		messageService: GetMessageService(),
+		statusService:  status.GetStatusService(),
+		openaiClient:   nil, // StartBotGoroutine에서 설정됨
 	}
 }
 
 // StartBotGoroutine 봇 고루틴 시작
 func (bg *BotGoroutine) StartBotGoroutine(session *middleware.SSESession, openaiClient *openai.Client) chan string {
+	// OpenAI 클라이언트 설정
+	bg.openaiClient = openaiClient
+
 	// 봇 고루틴 전용 채널 생성
 	botChannel := make(chan string, 100)
 
@@ -208,10 +217,31 @@ func (bg *BotGoroutine) generateAIResponse(session *middleware.SSESession, messa
 		Content: combinedMessage,
 	})
 
-	// AI 응답 생성
-	response, err := openaiClient.ChatCompletion(context.Background(), messages)
-	if err != nil {
-		log.Printf("AI 응답 생성 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+	// 동시에 두 개의 고루틴으로 처리
+	responseChan := make(chan *openai.ChatResponse, 1)
+	statusChan := make(chan *status.StatusExtractionResult, 1)
+
+	// 고루틴 1: AI 답변 생성
+	go func() {
+		response, err := openaiClient.ChatCompletion(context.Background(), messages)
+		if err != nil {
+			log.Printf("AI 응답 생성 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+			responseChan <- nil
+			return
+		}
+		responseChan <- response
+	}()
+
+	// 고루틴 2: 상태 정보 추출
+	go func() {
+		statusResult := bg.extractUserStatus(combinedMessage, openaiClient)
+		statusChan <- statusResult
+	}()
+
+	// AI 응답 대기
+	response := <-responseChan
+	if response == nil {
+		log.Printf("AI 응답 생성 실패 - 세션: %s", session.SessionID)
 		return
 	}
 
@@ -230,6 +260,15 @@ func (bg *BotGoroutine) generateAIResponse(session *middleware.SSESession, messa
 
 	// 봇 응답을 session.Channel로 전송
 	bg.sendBotMessage(session, botChatMessage)
+
+	// 상태 정보 결과 대기 및 저장
+	statusResult := <-statusChan
+	if statusResult != nil && statusResult.NeedsSave {
+		log.Printf("상태 정보 저장 시작 - 이벤트: %s, 유효시간: %s", statusResult.Event, statusResult.ValidUntil)
+		go bg.saveUserStatus(session, statusResult.Event, statusResult.ValidUntil, statusResult.Context)
+	} else {
+		log.Printf("상태 정보 저장 불필요 - 일반 대화 응답")
+	}
 }
 
 // combineMessages 버퍼에 쌓인 메시지들을 하나의 컨텍스트로 결합
@@ -273,6 +312,64 @@ func (bg *BotGoroutine) sendBotMessage(session *middleware.SSESession, botChatMe
 		log.Printf("봇 응답 전송 완료 - 세션: %s", session.SessionID)
 	default:
 		log.Printf("세션 채널이 가득 참 - 세션: %s", session.SessionID)
+	}
+}
+
+// extractUserStatus 사용자 메시지에서 상태 정보 추출
+func (bg *BotGoroutine) extractUserStatus(userMessage string, openaiClient *openai.Client) *status.StatusExtractionResult {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 상태 정보 추출을 위한 프롬프트 구성
+	statusPrompt := prompt.GetStatusExtractionPrompt()
+	statusMessages := []openai.ChatMessage{
+		{
+			Role:    "system",
+			Content: statusPrompt,
+		},
+		{
+			Role:    "user",
+			Content: userMessage,
+		},
+	}
+
+	log.Printf("상태 정보 추출 요청 시작 - 사용자 메시지: %s", userMessage)
+
+	// 상태 정보 추출 요청
+	statusResponse, err := openaiClient.ChatCompletion(ctx, statusMessages)
+	if err != nil {
+		log.Printf("상태 정보 추출 실패: %v", err)
+		return nil
+	}
+
+	log.Printf("상태 정보 추출 응답 수신 - 응답: %s", statusResponse.Message.Content)
+
+	// 상태 정보 파싱
+	statusResult, err := bg.statusService.ParseStatusExtractionResult(statusResponse.Message.Content)
+	if err != nil {
+		log.Printf("상태 정보 파싱 실패: %v, 원본 응답: %s", err, statusResponse.Message.Content)
+		return nil
+	}
+
+	log.Printf("상태 정보 파싱 완료 - needs_save: %t, event: %s, valid_until: %s",
+		statusResult.NeedsSave, statusResult.Event, statusResult.ValidUntil)
+
+	return statusResult
+}
+
+// saveUserStatus 사용자 상태 정보 저장
+func (bg *BotGoroutine) saveUserStatus(session *middleware.SSESession, event string, validUntil time.Time, context string) {
+	err := bg.statusService.SaveUserStatus(
+		session.UserUUID,
+		session.ChatbotUUID,
+		event,
+		validUntil,
+		context,
+	)
+	if err != nil {
+		log.Printf("상태 정보 저장 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+	} else {
+		log.Printf("상태 정보 저장 완료 - 세션: %s, 이벤트: %s", session.SessionID, event)
 	}
 }
 
