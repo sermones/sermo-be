@@ -71,6 +71,11 @@ definitions:
       uuid:
         type: string
     type: object
+  chat.OnKeyboardRequest:
+    properties:
+      chatbot_uuid:
+        type: string
+    type: object
   chat.SendMessageRequest:
     properties:
       chatbot_uuid:
@@ -386,6 +391,46 @@ paths:
       security:
       - BearerAuth: []
       summary: 채팅 히스토리 조회
+      tags:
+      - Chat
+  /chat/onkeyboard:
+    post:
+      consumes:
+      - application/json
+      description: 키보드 입력 중임을 알리는 이벤트를 처리합니다
+      parameters:
+      - description: 키보드 입력 이벤트 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chat.OnKeyboardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 이벤트 전송 성공
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 인증 실패
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 서버 오류
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 키보드 입력 이벤트
       tags:
       - Chat
   /chat/send:
