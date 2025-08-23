@@ -27,7 +27,7 @@ type UploadImageResponse struct {
 // UploadImage 이미지 업로드 핸들러
 // @Summary 이미지 업로드
 // @Description 사용자 이미지를 업로드하고 DB에 정보를 저장합니다
-// @Tags image
+// @Tags Image
 // @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth

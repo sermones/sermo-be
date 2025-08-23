@@ -27,7 +27,7 @@ type GetImageResponse struct {
 // GetImage 이미지 조회 핸들러
 // @Summary 이미지 조회
 // @Description 이미지 정보를 조회하고 프리사인드 URL을 생성합니다
-// @Tags image
+// @Tags Image
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -90,7 +90,7 @@ func GetImage(c *fiber.Ctx) error {
 // DownloadImage 이미지 다운로드 핸들러
 // @Summary 이미지 다운로드
 // @Description 이미지를 직접 다운로드합니다
-// @Tags image
+// @Tags Image
 // @Accept json
 // @Produce octet-stream
 // @Security BearerAuth

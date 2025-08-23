@@ -403,7 +403,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "image"
+                    "Image"
                 ],
                 "summary": "이미지 삭제",
                 "parameters": [
@@ -455,6 +455,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/image/generate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gemini API를 사용하여 텍스트 프롬프트로 이미지를 생성합니다. 회원가입한 사용자만 사용 가능합니다. 이미지 사이즈는 config에서 자동으로 1024x1024로 설정됩니다.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Image"
+                ],
+                "summary": "AI 이미지 생성",
+                "parameters": [
+                    {
+                        "description": "이미지 생성 정보 (prompt는 필수, style은 선택사항)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/image.GenerateImageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/image.GenerateImageResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "image_ids": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/image/upload": {
             "post": {
                 "security": [
@@ -470,7 +545,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "image"
+                    "Image"
                 ],
                 "summary": "이미지 업로드",
                 "parameters": [
@@ -528,7 +603,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "image"
+                    "Image"
                 ],
                 "summary": "이미지 조회",
                 "parameters": [
@@ -593,7 +668,7 @@ const docTemplate = `{
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "image"
+                    "Image"
                 ],
                 "summary": "이미지 다운로드",
                 "parameters": [
@@ -897,6 +972,34 @@ const docTemplate = `{
         "image.DeleteImageResponse": {
             "type": "object",
             "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "image.GenerateImageRequest": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "description": "이미지 생성 프롬프트 (필수)",
+                    "type": "string"
+                },
+                "style": {
+                    "description": "이미지 스타일 (선택사항, 비워두면 config의 애니메이션 프로필 사진 스타일 사용)",
+                    "type": "string"
+                }
+            }
+        },
+        "image.GenerateImageResponse": {
+            "type": "object",
+            "properties": {
+                "image_ids": {
+                    "description": "생성된 이미지 ID 리스트",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "message": {
                     "type": "string"
                 }

@@ -142,6 +142,25 @@ definitions:
       message:
         type: string
     type: object
+  image.GenerateImageRequest:
+    properties:
+      prompt:
+        description: 이미지 생성 프롬프트 (필수)
+        type: string
+      style:
+        description: 이미지 스타일 (선택사항, 비워두면 config의 애니메이션 프로필 사진 스타일 사용)
+        type: string
+    type: object
+  image.GenerateImageResponse:
+    properties:
+      image_ids:
+        description: 생성된 이미지 ID 리스트
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+    type: object
   image.GetImageResponse:
     properties:
       image:
@@ -485,7 +504,7 @@ paths:
       - BearerAuth: []
       summary: 이미지 조회
       tags:
-      - image
+      - Image
   /image/{image_id}/download:
     get:
       consumes:
@@ -528,7 +547,7 @@ paths:
       - BearerAuth: []
       summary: 이미지 다운로드
       tags:
-      - image
+      - Image
   /image/delete:
     delete:
       consumes:
@@ -572,7 +591,54 @@ paths:
       - BearerAuth: []
       summary: 이미지 삭제
       tags:
-      - image
+      - Image
+  /image/generate:
+    post:
+      consumes:
+      - application/json
+      description: Gemini API를 사용하여 텍스트 프롬프트로 이미지를 생성합니다. 회원가입한 사용자만 사용 가능합니다. 이미지
+        사이즈는 config에서 자동으로 1024x1024로 설정됩니다.
+      parameters:
+      - description: 이미지 생성 정보 (prompt는 필수, style은 선택사항)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/image.GenerateImageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/image.GenerateImageResponse'
+            - properties:
+                image_ids:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: AI 이미지 생성
+      tags:
+      - Image
   /image/upload:
     post:
       consumes:
@@ -610,7 +676,7 @@ paths:
       - BearerAuth: []
       summary: 이미지 업로드
       tags:
-      - image
+      - Image
   /user/profile:
     get:
       consumes:

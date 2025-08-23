@@ -177,6 +177,7 @@ type User struct {
 
 ### 인증 필요 엔드포인트
 - `GET /user/profile` - 사용자 프로필 조회
+- `POST /image/generate` - AI 이미지 생성 (Gemini API)
 
 ### 라우터 그룹 구조
 ```go
@@ -317,6 +318,9 @@ R2_ACCESS_KEY_ID=your_access_key
 R2_SECRET_ACCESS_KEY=your_secret_key
 R2_ENDPOINT=your_endpoint
 R2_BUCKET=your_bucket
+
+# Gemini 설정
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### 실행 방법

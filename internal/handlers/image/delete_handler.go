@@ -24,7 +24,7 @@ type DeleteImageResponse struct {
 // DeleteImage 이미지 삭제 핸들러
 // @Summary 이미지 삭제
 // @Description 사용자 이미지를 삭제합니다
-// @Tags image
+// @Tags Image
 // @Accept json
 // @Produce json
 // @Security BearerAuth

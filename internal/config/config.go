@@ -8,6 +8,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	R2       R2Config
+	Gemini   GeminiConfig
 }
 
 type ServerConfig struct {
@@ -31,6 +32,12 @@ type R2Config struct {
 	Bucket          string
 }
 
+type GeminiConfig struct {
+	APIKey     string
+	ImageSize  string
+	ImageStyle string
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -50,6 +57,11 @@ func Load() *Config {
 			SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", "0cef3b206ee353b43f988558ae07808a3ad46a12a22463c2b17bbbfde7908cdb"),
 			Endpoint:        getEnv("R2_ENDPOINT", "https://035ea6d0a6159a3e4c6f41ded546d78d.r2.cloudflarestorage.com"),
 			Bucket:          getEnv("R2_BUCKET", "sermo-be"),
+		},
+		Gemini: GeminiConfig{
+			APIKey:     getEnv("GEMINI_API_KEY", "AIzaSyCtP88vApuqrnsfj9HGlG1NWRI6QxPJDfk"),
+			ImageSize:  getEnv("GEMINI_IMAGE_SIZE", "1024x1024"),
+			ImageStyle: getEnv("GEMINI_IMAGE_STYLE", "anime profile picture style, 1:1 aspect ratio, high quality, detailed, cute character design"),
 		},
 	}
 }

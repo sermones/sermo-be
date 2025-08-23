@@ -98,6 +98,7 @@ func main() {
 	go func() {
 		if err := app.Listen(serverAddr); err != nil {
 			log.Fatalf("서버 시작 실패: %v", err)
+
 		}
 	}()
 
