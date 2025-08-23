@@ -29,9 +29,11 @@ import (
 
 	_ "sermo-be/docs"
 	"sermo-be/internal/config"
+	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/routes"
 	"sermo-be/pkg/database"
+	"sermo-be/pkg/openai"
 	"sermo-be/pkg/redis"
 
 	"github.com/gofiber/fiber/v2"
@@ -100,6 +102,21 @@ func main() {
 
 	// 라우터 설정
 	routes.SetupRoutes(app)
+
+	// 통합 스케줄러 시작 (알람 예약 + FCM 전송)
+	log.Println("🔔 통합 스케줄러 시작 중...")
+	openaiClient, err := openai.NewClient(&openai.Config{
+		APIKey:              cfg.OpenAI.APIKey,
+		Model:               cfg.OpenAI.Model,
+		MaxCompletionTokens: cfg.OpenAI.MaxCompletionTokens,
+	})
+	if err == nil {
+		integratedScheduler := chat.NewIntegratedScheduler(openaiClient)
+		integratedScheduler.StartSchedulers()
+		log.Println("✅ 통합 스케줄러 시작 완료")
+	} else {
+		log.Printf("⚠️ OpenAI 클라이언트 생성 실패로 스케줄러를 시작하지 않습니다: %v", err)
+	}
 
 	// 서버 시작
 	serverAddr := cfg.Server.Host + ":" + cfg.Server.Port

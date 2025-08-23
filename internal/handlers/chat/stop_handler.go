@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -59,6 +60,17 @@ func StopChat(c *fiber.Ctx) error {
 	if err := sseManager.StopSession(targetSession.SessionID); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
+
+	// 세션 종료 시 알람 예약 처리
+	go func() {
+		// OpenAI 클라이언트 가져오기
+		openaiClient := middleware.GetOpenAIClient(c)
+		if openaiClient != nil {
+			// 통합 스케줄러 생성 및 세션 종료 시 알람 예약 처리
+			scheduler := chat.NewIntegratedScheduler(openaiClient)
+			scheduler.ProcessSessionEnd(userUUID, req.ChatbotUUID)
+		}
+	}()
 
 	return c.JSON(fiber.Map{"message": "Chat session stopped successfully"})
 }

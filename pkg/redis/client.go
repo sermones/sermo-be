@@ -67,3 +67,8 @@ func DeleteKey(ctx context.Context, key string) error {
 func SetExpire(ctx context.Context, key string, ttl time.Duration) error {
 	return RedisClient.Expire(ctx, key, ttl).Err()
 }
+
+// Keys 패턴에 맞는 키들 조회
+func Keys(ctx context.Context, pattern string) ([]string, error) {
+	return RedisClient.Keys(ctx, pattern).Result()
+}
