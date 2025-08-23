@@ -249,6 +249,24 @@ definitions:
       message:
         type: string
     type: object
+  fcm.CreateFCMTokenRequest:
+    properties:
+      device_info:
+        type: string
+      fcm_token:
+        type: string
+    required:
+    - fcm_token
+    type: object
+  fcm.CreateFCMTokenResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.FCMToken'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   image.DeleteImageRequest:
     properties:
       image_id:
@@ -293,6 +311,21 @@ definitions:
       image:
         $ref: '#/definitions/models.Image'
       message:
+        type: string
+    type: object
+  models.FCMToken:
+    properties:
+      created_at:
+        type: string
+      device_info:
+        type: string
+      fcm_token:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+      user_uuid:
         type: string
     type: object
   models.Image:
@@ -959,6 +992,122 @@ paths:
       summary: 채팅봇 수정
       tags:
       - Chatbot
+  /fcm/token:
+    post:
+      consumes:
+      - application/json
+      description: FCM 토큰을 생성하거나 기존 토큰을 업데이트합니다.
+      parameters:
+      - description: FCM 토큰 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/fcm.CreateFCMTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/fcm.CreateFCMTokenResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/fcm.CreateFCMTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: FCM 토큰 생성/업데이트
+      tags:
+      - FCM
+  /fcm/token/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 현재 인증된 사용자의 특정 FCM 토큰을 삭제합니다 (soft delete).
+      parameters:
+      - description: FCM 토큰 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: FCM 토큰 삭제
+      tags:
+      - FCM
+  /fcm/token/user:
+    get:
+      consumes:
+      - application/json
+      description: 현재 인증된 사용자의 모든 FCM 토큰을 조회합니다.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FCMToken'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 사용자별 FCM 토큰 조회
+      tags:
+      - FCM
   /image/{image_id}:
     get:
       consumes:
@@ -1129,44 +1278,6 @@ paths:
       summary: AI 이미지 생성 (외형 특징 자동 추출)
       tags:
       - Image
-  /image/test-upload:
-    post:
-      consumes:
-      - multipart/form-data
-      description: R2 없이 테스트하는 이미지 업로드
-      parameters:
-      - description: 이미지 파일
-        in: formData
-        name: file
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/image.UploadImageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: 테스트용 이미지 업로드
-      tags:
-      - image
   /image/upload:
     post:
       consumes:
