@@ -28,4 +28,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 북마크 라우터 설정
 	SetupBookmarkRoutes(app)
+
+	// FCM 라우터 설정
+	SetupFCMRoutes(app)
 }
