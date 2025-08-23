@@ -29,12 +29,9 @@ import (
 
 	_ "sermo-be/docs"
 	"sermo-be/internal/config"
-	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/routes"
 	"sermo-be/pkg/database"
-	"sermo-be/pkg/openai"
-	"sermo-be/pkg/redis"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -65,11 +62,6 @@ func main() {
 		log.Fatalf("데이터베이스 마이그레이션 실패: %v", err)
 	}
 
-	// Redis 연결
-	if err := redis.Connect(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB); err != nil {
-		log.Fatalf("Redis 연결 실패: %v", err)
-	}
-
 	// Fiber 앱 생성
 	app := fiber.New(fiber.Config{
 		AppName: "Sermo Backend",
@@ -96,27 +88,11 @@ func main() {
 	// DI 미들웨어 설정
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
-	app.Use(middleware.RedisMiddleware())
 	app.Use(middleware.R2Middleware(cfg))
 	app.Use(middleware.OpenAIMiddleware(cfg))
 
 	// 라우터 설정
 	routes.SetupRoutes(app)
-
-	// 통합 스케줄러 시작 (알람 예약 + FCM 전송)
-	log.Println("🔔 통합 스케줄러 시작 중...")
-	openaiClient, err := openai.NewClient(&openai.Config{
-		APIKey:              cfg.OpenAI.APIKey,
-		Model:               cfg.OpenAI.Model,
-		MaxCompletionTokens: cfg.OpenAI.MaxCompletionTokens,
-	})
-	if err == nil {
-		integratedScheduler := chat.NewIntegratedScheduler(openaiClient)
-		integratedScheduler.StartSchedulers()
-		log.Println("✅ 통합 스케줄러 시작 완료")
-	} else {
-		log.Printf("⚠️ OpenAI 클라이언트 생성 실패로 스케줄러를 시작하지 않습니다: %v", err)
-	}
 
 	// 서버 시작
 	serverAddr := cfg.Server.Host + ":" + cfg.Server.Port
@@ -140,11 +116,6 @@ func main() {
 	log.Println("🔄 SSE 세션 정리 중...")
 	sseManager := middleware.GetSSEManager()
 	sseManager.Shutdown()
-
-	// Redis 연결 종료
-	if err := redis.Close(); err != nil {
-		log.Printf("Redis 연결 종료 실패: %v", err)
-	}
 
 	if err := app.Shutdown(); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)

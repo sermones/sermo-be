@@ -1,8 +1,10 @@
 package chat
 
 import (
+	"log"
 	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
+	"sermo-be/pkg/database"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -62,15 +64,43 @@ func StopChat(c *fiber.Ctx) error {
 	}
 
 	// 세션 종료 시 알람 예약 처리
-	go func() {
-		// OpenAI 클라이언트 가져오기
-		openaiClient := middleware.GetOpenAIClient(c)
-		if openaiClient != nil {
-			// 통합 스케줄러 생성 및 세션 종료 시 알람 예약 처리
-			scheduler := chat.NewIntegratedScheduler(openaiClient)
-			scheduler.ProcessSessionEnd(userUUID, req.ChatbotUUID)
-		}
-	}()
+	// 고루틴 시작 전에 필요한 데이터를 미리 가져오기
+	openaiClient := middleware.GetOpenAIClient(c)
+	if openaiClient != nil {
+		go func() {
+			log.Printf("🔄 알람 메시지 생성 시작 - 사용자: %s, 챗봇: %s", userUUID, req.ChatbotUUID)
+
+			// 데이터베이스 연결 확인
+			if database.DB == nil {
+				log.Printf("❌ 데이터베이스 연결이 없음 - 알람 생성 중단")
+				return
+			}
+
+			// 알람 메시지 생성 및 데이터베이스 저장
+			config := chat.AlarmMessageConfig{
+				UserUUID:    userUUID,
+				ChatbotUUID: req.ChatbotUUID,
+			}
+
+			log.Printf("📝 알람 메시지 생성 중...")
+			alarmMessage, err := chat.AlarmMessageGeneate(openaiClient, database.DB, config)
+			if err != nil {
+				log.Printf("❌ 알람 메시지 생성 실패: %v", err)
+				return
+			}
+
+			log.Printf("✅ 알람 메시지 생성 성공 - 전송 시간: %s", alarmMessage.SendTime.Format("2006-01-02 15:04:05"))
+
+			// FCM 즉시 전송
+			if err := chat.SendImmediateFCMNotification(userUUID, alarmMessage.Message, req.ChatbotUUID); err != nil {
+				log.Printf("❌ FCM 전송 실패: %v", err)
+			} else {
+				log.Printf("✅ FCM 알람 전송 완료")
+			}
+		}()
+	} else {
+		log.Printf("❌ OpenAI 클라이언트를 가져올 수 없음 - 알람 생성 중단")
+	}
 
 	return c.JSON(fiber.Map{"message": "Chat session stopped successfully"})
 }

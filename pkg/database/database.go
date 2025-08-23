@@ -90,6 +90,7 @@ func RunMigrations() error {
 		&models.WordBookmark{},
 		&models.UserStatus{},
 		&models.FCMToken{},
+		&models.AlarmSchedule{},
 	}
 
 	err := DB.AutoMigrate(models...)
