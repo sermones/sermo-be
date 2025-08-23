@@ -89,6 +89,7 @@ func main() {
 	app.Use(middleware.ConfigMiddleware(cfg))
 	app.Use(middleware.DatabaseMiddleware(database.DB))
 	app.Use(middleware.R2Middleware(cfg))
+	app.Use(middleware.OpenAIMiddleware(cfg))
 
 	// 라우터 설정
 	routes.SetupRoutes(app)
