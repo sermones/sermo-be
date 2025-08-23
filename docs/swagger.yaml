@@ -1129,6 +1129,44 @@ paths:
       summary: AI 이미지 생성 (외형 특징 자동 추출)
       tags:
       - Image
+  /image/test-upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: R2 없이 테스트하는 이미지 업로드
+      parameters:
+      - description: 이미지 파일
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/image.UploadImageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 테스트용 이미지 업로드
+      tags:
+      - image
   /image/upload:
     post:
       consumes:
