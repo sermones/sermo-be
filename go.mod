@@ -52,6 +52,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/sashabaranov/go-openai v1.41.1 // indirect
 	github.com/swaggo/fiber-swagger v1.3.0 // indirect
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

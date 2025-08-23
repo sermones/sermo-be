@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -9,6 +10,7 @@ type Config struct {
 	Database DatabaseConfig
 	R2       R2Config
 	Gemini   GeminiConfig
+	OpenAI   OpenAIConfig
 }
 
 type ServerConfig struct {
@@ -38,6 +40,13 @@ type GeminiConfig struct {
 	ImageStyle string
 }
 
+type OpenAIConfig struct {
+	APIKey      string
+	Model       string
+	Temperature float64
+	MaxTokens   int
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -63,12 +72,36 @@ func Load() *Config {
 			ImageSize:  getEnv("GEMINI_IMAGE_SIZE", "1024x1024"),
 			ImageStyle: getEnv("GEMINI_IMAGE_STYLE", "anime profile pricture style, 1:1 aspect ratio, high quality"),
 		},
+		OpenAI: OpenAIConfig{
+			APIKey:      getEnv("OPENAI_API_KEY", "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"),
+			Model:       getEnv("OPENAI_MODEL", "gpt-5-nano-2025-08-07"),
+			Temperature: getEnvAsFloat("OPENAI_TEMPERATURE", 0.7),
+			MaxTokens:   getEnvAsInt("OPENAI_MAX_TOKENS", 2048),
+		},
 	}
 }
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvAsFloat(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if f, err := strconv.ParseFloat(value, 64); err == nil {
+			return f
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.Atoi(value); err == nil {
+			return i
+		}
 	}
 	return defaultValue
 }
