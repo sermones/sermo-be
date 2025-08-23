@@ -1,6 +1,7 @@
 package chatbot
 
 import (
+	"encoding/json"
 	"net/http"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
@@ -64,12 +65,22 @@ func FindChatbotByID(c *fiber.Ctx) error {
 		})
 	}
 
+	// Hashtags JSON 파싱
+	var hashtags []string
+	if len(chatbot.Hashtags) > 0 {
+		if err := json.Unmarshal(chatbot.Hashtags, &hashtags); err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to parse hashtags",
+			})
+		}
+	}
+
 	// 응답 데이터 변환
 	response := ChatbotResponse{
 		UUID:      chatbot.UUID.String(),
 		Name:      chatbot.Name,
 		ImageID:   chatbot.ImageID,
-		Hashtags:  chatbot.Hashtags,
+		Hashtags:  hashtags,
 		Gender:    string(chatbot.Gender),
 		Details:   chatbot.Details,
 		CreatedAt: chatbot.CreatedAt.Format("2006-01-02 15:04:05"),

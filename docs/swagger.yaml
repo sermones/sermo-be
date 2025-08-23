@@ -37,6 +37,68 @@ definitions:
       uuid:
         type: string
     type: object
+  chat.ChatHistoryRequest:
+    properties:
+      chatbot_uuid:
+        type: string
+      limit:
+        maximum: 100
+        minimum: 1
+        type: integer
+      offset:
+        minimum: 0
+        type: integer
+    required:
+    - chatbot_uuid
+    type: object
+  chat.ChatHistoryResponse:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/chat.ChatMessageResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  chat.ChatMessageResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      message_type:
+        type: string
+      uuid:
+        type: string
+    type: object
+  chat.SendMessageRequest:
+    properties:
+      chatbot_uuid:
+        type: string
+      message:
+        type: string
+    required:
+    - chatbot_uuid
+    - message
+    type: object
+  chat.SendMessageResponse:
+    properties:
+      message:
+        type: string
+      message_type:
+        type: string
+      session_id:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  chat.StopChatRequest:
+    properties:
+      chatbot_uuid:
+        type: string
+    required:
+    - chatbot_uuid
+    type: object
   chatbot.ChatbotListResponse:
     properties:
       created_at:
@@ -287,6 +349,162 @@ paths:
       summary: 회원가입
       tags:
       - Authentication
+  /chat/history:
+    post:
+      consumes:
+      - application/json
+      description: 특정 채팅봇과의 대화 히스토리를 조회합니다
+      parameters:
+      - description: 히스토리 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chat.ChatHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/chat.ChatHistoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 채팅 히스토리 조회
+      tags:
+      - Chat
+  /chat/send:
+    post:
+      consumes:
+      - application/json
+      description: 기존 세션에 메시지를 전송합니다
+      parameters:
+      - description: 메시지 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chat.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/chat.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 메시지 전송
+      tags:
+      - Chat
+  /chat/start:
+    get:
+      consumes:
+      - application/json
+      description: 채팅을 시작하고 SSE 연결을 설정합니다
+      parameters:
+      - description: 채팅봇 UUID
+        in: query
+        name: chatbot_uuid
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE 스트림
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 채팅 시작
+      tags:
+      - Chat
+  /chat/stop:
+    post:
+      consumes:
+      - application/json
+      description: 활성 채팅 세션을 중단합니다
+      parameters:
+      - description: 세션 중단 요청
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/chat.StopChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 채팅 세션 중단
+      tags:
+      - Chat
   /chatbot:
     get:
       consumes:

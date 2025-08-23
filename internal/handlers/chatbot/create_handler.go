@@ -1,6 +1,7 @@
 package chatbot
 
 import (
+	"encoding/json"
 	"net/http"
 	"sermo-be/internal/middleware"
 	"sermo-be/internal/models"
@@ -78,11 +79,19 @@ func CreateChatbot(c *fiber.Ctx) error {
 	// context에서 database 가져오기
 	db := middleware.GetDB(c)
 
+	// hashtags를 JSON으로 변환
+	hashtagsJSON, err := json.Marshal(req.Hashtags)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to process hashtags",
+		})
+	}
+
 	// 채팅봇 생성
 	chatbot := models.NewChatbot(
 		req.Name,
 		req.ImageID,
-		req.Hashtags,
+		hashtagsJSON,
 		gender,
 		req.Details,
 		userUUID,

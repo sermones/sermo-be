@@ -22,4 +22,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// 채팅봇 라우터 설정
 	SetupChatbotRoutes(app)
+
+	// 채팅 라우터 설정
+	SetupChatRoutes(app)
 }
