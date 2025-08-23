@@ -61,7 +61,7 @@ func Load() *Config {
 		Gemini: GeminiConfig{
 			APIKey:     getEnv("GEMINI_API_KEY", "AIzaSyCtP88vApuqrnsfj9HGlG1NWRI6QxPJDfk"),
 			ImageSize:  getEnv("GEMINI_IMAGE_SIZE", "1024x1024"),
-			ImageStyle: getEnv("GEMINI_IMAGE_STYLE", "anime profile picture style, 1:1 aspect ratio, high quality, detailed, cute character design"),
+			ImageStyle: getEnv("GEMINI_IMAGE_STYLE", "anime profile pricture style, 1:1 aspect ratio, high quality"),
 		},
 	}
 }

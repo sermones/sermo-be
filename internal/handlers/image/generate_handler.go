@@ -10,6 +10,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+
+	"sermo-be/pkg/prompt"
 )
 
 // GenerateImageRequest 이미지 생성 요청 DTO
@@ -166,7 +168,7 @@ func buildEnhancedPrompt(basePrompt, style string, c *fiber.Ctx) string {
 	config := middleware.GetConfig(c)
 
 	// 기본 프롬프트에 이미지 생성 요청을 명시적으로 추가
-	enhancedPrompt := fmt.Sprintf("Please generate an image of: %s", basePrompt)
+	enhancedPrompt := fmt.Sprintf("Please generate an image of \n Detail(you must follow this instruction): %s", basePrompt)
 
 	// 스타일 정보 추가 (사용자 입력이 있으면 사용, 없으면 config 기본값 사용)
 	if style != "" {
@@ -179,6 +181,8 @@ func buildEnhancedPrompt(basePrompt, style string, c *fiber.Ctx) string {
 	if config != nil && config.Gemini.ImageSize != "" {
 		enhancedPrompt += fmt.Sprintf(", %s size", config.Gemini.ImageSize)
 	}
+
+	enhancedPrompt += fmt.Sprintf(", additional_instruction: %s", prompt.GetProfileImageGeneratePrompt())
 
 	// 이미지 생성을 명시적으로 요청 (Google 공식 문서 권장사항)
 	enhancedPrompt += ". Please provide an image for this prompt."
