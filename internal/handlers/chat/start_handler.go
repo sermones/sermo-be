@@ -13,6 +13,24 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// checkConnectionStatus 클라이언트 연결 상태를 확인합니다
+func checkConnectionStatus(w *bufio.Writer) error {
+	// 연결 상태 확인을 위한 테스트 메시지 전송
+	testMessage := "data: {\"type\":\"connection_check\",\"timestamp\":\"" + time.Now().Format(time.RFC3339) + "\"}\n\n"
+
+	// 버퍼에 메시지 쓰기 시도
+	if _, err := w.Write([]byte(testMessage)); err != nil {
+		return fmt.Errorf("연결 상태 체크 실패: %w", err)
+	}
+
+	// 버퍼 플러시 시도
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("버퍼 플러시 실패: %w", err)
+	}
+
+	return nil
+}
+
 // StartChat 채팅 시작 및 SSE 연결
 // @Summary 채팅 시작
 // @Description 채팅을 시작하고 SSE 연결을 설정합니다
@@ -66,9 +84,13 @@ func StartChat(c *fiber.Ctx) error {
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		log.Printf("SSE 스트림 시작 - 세션: %s", session.SessionID)
 
-		// 연결 유지를 위한 heartbeat
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
+		// 연결 유지를 위한 heartbeat (30초마다)
+		heartbeatTicker := time.NewTicker(30 * time.Second)
+		defer heartbeatTicker.Stop()
+
+		// 연결 상태 체크 (5초마다)
+		connectionCheckTicker := time.NewTicker(5 * time.Second)
+		defer connectionCheckTicker.Stop()
 
 		// 클라이언트 메시지와 봇 메시지를 처리
 		for session.IsActive {
@@ -117,7 +139,7 @@ func StartChat(c *fiber.Ctx) error {
 				}
 				w.Flush()
 
-			case <-ticker.C:
+			case <-heartbeatTicker.C:
 				// heartbeat 전송
 				log.Printf("heartbeat 전송 - 세션: %s", session.SessionID)
 				heartbeat := fmt.Sprintf("data: %s\n\n", "heartbeat")
@@ -128,6 +150,14 @@ func StartChat(c *fiber.Ctx) error {
 					return
 				}
 				w.Flush()
+
+			case <-connectionCheckTicker.C:
+				// 5초마다 연결 상태 체크
+				if err := checkConnectionStatus(w); err != nil {
+					log.Printf("연결 상태 체크 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+					sseManager.DeleteSession(session.SessionID)
+					return
+				}
 
 			case <-session.Done:
 				// SSE Manager에서 전송한 종료 신호
