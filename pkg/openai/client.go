@@ -9,18 +9,16 @@ import (
 
 // Client OpenAI API 클라이언트
 type Client struct {
-	client      *openai.Client
-	model       string
-	temperature float64
-	maxTokens   int
+	client              *openai.Client
+	model               string
+	maxCompletionTokens int
 }
 
 // Config OpenAI 클라이언트 설정
 type Config struct {
-	APIKey      string
-	Model       string
-	Temperature float64
-	MaxTokens   int
+	APIKey              string
+	Model               string
+	MaxCompletionTokens int
 }
 
 // ChatMessage 채팅 메시지 구조
@@ -31,10 +29,9 @@ type ChatMessage struct {
 
 // ChatRequest 채팅 요청 구조
 type ChatRequest struct {
-	Messages    []ChatMessage `json:"messages"`
-	Model       string        `json:"model,omitempty"`
-	Temperature float64       `json:"temperature,omitempty"`
-	MaxTokens   int           `json:"max_tokens,omitempty"`
+	Messages            []ChatMessage `json:"messages"`
+	Model               string        `json:"model,omitempty"`
+	MaxCompletionTokens int           `json:"max_completion_tokens,omitempty"`
 }
 
 // ChatResponse 채팅 응답 구조
@@ -61,21 +58,16 @@ func NewClient(cfg *Config) (*Client, error) {
 		cfg.Model = "gpt-5-nano-2025-08-07"
 	}
 
-	if cfg.Temperature == 0 {
-		cfg.Temperature = 0.7
-	}
-
-	if cfg.MaxTokens == 0 {
-		cfg.MaxTokens = 2048
+	if cfg.MaxCompletionTokens == 0 {
+		cfg.MaxCompletionTokens = 2048
 	}
 
 	client := openai.NewClient(cfg.APIKey)
 
 	return &Client{
-		client:      client,
-		model:       cfg.Model,
-		temperature: cfg.Temperature,
-		maxTokens:   cfg.MaxTokens,
+		client:              client,
+		model:               cfg.Model,
+		maxCompletionTokens: cfg.MaxCompletionTokens,
 	}, nil
 }
 
@@ -98,10 +90,9 @@ func (c *Client) ChatCompletion(ctx context.Context, messages []ChatMessage) (*C
 	resp, err := c.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model:       c.model,
-			Messages:    openaiMessages,
-			Temperature: float32(c.temperature),
-			MaxTokens:   c.maxTokens,
+			Model:               c.model,
+			Messages:            openaiMessages,
+			MaxCompletionTokens: c.maxCompletionTokens,
 		},
 	)
 
@@ -138,11 +129,8 @@ func (c *Client) ChatCompletionWithOptions(ctx context.Context, req ChatRequest)
 	if req.Model == "" {
 		req.Model = c.model
 	}
-	if req.Temperature == 0 {
-		req.Temperature = c.temperature
-	}
-	if req.MaxTokens == 0 {
-		req.MaxTokens = c.maxTokens
+	if req.MaxCompletionTokens == 0 {
+		req.MaxCompletionTokens = c.maxCompletionTokens
 	}
 
 	return c.ChatCompletion(ctx, req.Messages)
@@ -153,14 +141,9 @@ func (c *Client) GetModel() string {
 	return c.model
 }
 
-// GetTemperature 현재 설정된 온도 반환
-func (c *Client) GetTemperature() float64 {
-	return c.temperature
-}
-
-// GetMaxTokens 현재 설정된 최대 토큰 수 반환
-func (c *Client) GetMaxTokens() int {
-	return c.maxTokens
+// GetMaxCompletionTokens 현재 설정된 최대 완성 토큰 수 반환
+func (c *Client) GetMaxCompletionTokens() int {
+	return c.maxCompletionTokens
 }
 
 // SetModel 모델 변경
@@ -168,16 +151,9 @@ func (c *Client) SetModel(model string) {
 	c.model = model
 }
 
-// SetTemperature 온도 변경
-func (c *Client) SetTemperature(temperature float64) {
-	if temperature >= 0 && temperature <= 2 {
-		c.temperature = temperature
-	}
-}
-
-// SetMaxTokens 최대 토큰 수 변경
-func (c *Client) SetMaxTokens(maxTokens int) {
-	if maxTokens > 0 {
-		c.maxTokens = maxTokens
+// SetMaxCompletionTokens 최대 완성 토큰 수 변경
+func (c *Client) SetMaxCompletionTokens(maxCompletionTokens int) {
+	if maxCompletionTokens > 0 {
+		c.maxCompletionTokens = maxCompletionTokens
 	}
 }

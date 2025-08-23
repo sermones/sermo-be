@@ -3,9 +3,8 @@ package chat
 import (
 	"time"
 
+	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
-	"sermo-be/internal/models"
-	"sermo-be/pkg/database"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -62,22 +61,17 @@ func GetChatHistory(c *fiber.Ctx) error {
 		req.Limit = 50
 	}
 
-	// 총 메시지 수 조회
-	var total int64
-	if err := database.DB.Model(&models.ChatMessage{}).
-		Where("user_uuid = ? AND chatbot_uuid = ?", userUUID, req.ChatbotUUID).
-		Count(&total).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Failed to count messages"})
+	// MessageService를 사용하여 대화 히스토리 조회
+	messageService := chat.GetMessageService()
+	messages, err := messageService.GetChatHistory(userUUID, req.ChatbotUUID, req.Limit)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// 메시지 조회
-	var messages []models.ChatMessage
-	if err := database.DB.Where("user_uuid = ? AND chatbot_uuid = ?", userUUID, req.ChatbotUUID).
-		Order("created_at DESC").
-		Limit(req.Limit).
-		Offset(req.Offset).
-		Find(&messages).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Failed to fetch messages"})
+	// 총 메시지 수 조회
+	total, err := messageService.GetChatHistoryCount(userUUID, req.ChatbotUUID)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	// 응답 변환

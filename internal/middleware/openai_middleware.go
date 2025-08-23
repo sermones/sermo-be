@@ -14,10 +14,9 @@ func OpenAIMiddleware(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// OpenAI 클라이언트 생성
 		openaiClient, err := openai.NewClient(&openai.Config{
-			APIKey:      cfg.OpenAI.APIKey,
-			Model:       cfg.OpenAI.Model,
-			Temperature: cfg.OpenAI.Temperature,
-			MaxTokens:   cfg.OpenAI.MaxTokens,
+			APIKey:              cfg.OpenAI.APIKey,
+			Model:               cfg.OpenAI.Model,
+			MaxCompletionTokens: cfg.OpenAI.MaxCompletionTokens,
 		})
 		if err != nil {
 			log.Printf("OpenAI 클라이언트 생성 실패: %v", err)

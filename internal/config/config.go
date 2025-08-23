@@ -41,10 +41,9 @@ type GeminiConfig struct {
 }
 
 type OpenAIConfig struct {
-	APIKey      string
-	Model       string
-	Temperature float64
-	MaxTokens   int
+	APIKey              string
+	Model               string
+	MaxCompletionTokens int
 }
 
 func Load() *Config {
@@ -73,10 +72,9 @@ func Load() *Config {
 			ImageStyle: getEnv("GEMINI_IMAGE_STYLE", "anime profile pricture style, 1:1 aspect ratio, high quality"),
 		},
 		OpenAI: OpenAIConfig{
-			APIKey:      getEnv("OPENAI_API_KEY", "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"),
-			Model:       getEnv("OPENAI_MODEL", "gpt-5-nano-2025-08-07"),
-			Temperature: getEnvAsFloat("OPENAI_TEMPERATURE", 0.7),
-			MaxTokens:   getEnvAsInt("OPENAI_MAX_TOKENS", 2048),
+			APIKey:              getEnv("OPENAI_API_KEY", "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"),
+			Model:               getEnv("OPENAI_MODEL", "gpt-5-nano-2025-08-07"),
+			MaxCompletionTokens: getEnvAsInt("OPENAI_MAX_COMPLETION_TOKENS", 2048),
 		},
 	}
 }

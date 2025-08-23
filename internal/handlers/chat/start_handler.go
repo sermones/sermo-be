@@ -2,10 +2,12 @@ package chat
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
+	"sermo-be/internal/core/chat"
 	"sermo-be/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -49,6 +51,17 @@ func StartChat(c *fiber.Ctx) error {
 	// SSE 헤더 설정
 	middleware.SSEHeaders(c)
 
+	// 봇 고루틴 시작
+	botGoroutine := chat.GetBotGoroutine()
+
+	// OpenAI 클라이언트 가져오기
+	openaiClient := middleware.GetOpenAIClient(c)
+	if openaiClient == nil {
+		return c.Status(500).JSON(fiber.Map{"error": "OpenAI service unavailable"})
+	}
+
+	botChannel := botGoroutine.StartBotGoroutine(session, openaiClient)
+
 	// SSE 스트림 시작
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		log.Printf("SSE 스트림 시작 - 세션: %s", session.SessionID)
@@ -57,17 +70,43 @@ func StartChat(c *fiber.Ctx) error {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
-		// 세션이 활성화되어 있는 동안 메시지 수신 대기
-		log.Printf("SSE 루프 시작 - 세션: %s, IsActive: %v", session.SessionID, session.IsActive)
+		// 클라이언트 메시지와 봇 메시지를 처리
 		for session.IsActive {
 			select {
 			case message := <-session.Channel:
-				// 메시지 전송 (봇 응답 등)
-				log.Printf("메시지 수신 - 세션: %s, 메시지: %s", session.SessionID, message)
-				data := fmt.Sprintf("data: %s\n\n", message)
-				_, err := w.Write([]byte(data))
+				// 클라이언트에서 온 메시지 처리
+				log.Printf("클라이언트 메시지 수신 - 세션: %s, 메시지: %s", session.SessionID, message)
+
+				// SSE 메시지에서 "data: " 접두사 제거
+				jsonData := message
+				if len(message) > 6 && message[:6] == "data: " {
+					jsonData = message[6:]
+				}
+
+				// 메시지 타입 확인
+				var baseMessage struct {
+					Type string `json:"type"`
+				}
+				if err := json.Unmarshal([]byte(jsonData), &baseMessage); err != nil {
+					log.Printf("메시지 타입 파싱 실패: %v", err)
+					continue
+				}
+
+				// 사용자 메시지인 경우 봇 채널로 전달
+				if baseMessage.Type == "user" {
+					log.Printf("사용자 메시지를 봇 채널로 전달 - 세션: %s", session.SessionID)
+					select {
+					case botChannel <- message:
+						// 전달 성공
+					default:
+						log.Printf("봇 채널이 가득 참 - 세션: %s", session.SessionID)
+					}
+				}
+
+				// 클라이언트에 메시지 전송 (echo)
+				_, err := w.Write([]byte(message))
 				if err != nil {
-					log.Printf("메시지 전송 실패 - 세션: %s, 에러: %v", session.SessionID, err)
+					log.Printf("클라이언트 메시지 전송 실패 - 세션: %s, 에러: %v", session.SessionID, err)
 					sseManager.DeleteSession(session.SessionID)
 					return
 				}
@@ -90,8 +129,6 @@ func StartChat(c *fiber.Ctx) error {
 				log.Printf("SSE Manager에서 세션 종료 신호 수신 - 세션: %s", session.SessionID)
 				return
 			}
-			// 루프 상태 로깅
-			log.Printf("루프 반복 - 세션: %s, IsActive: %v", session.SessionID, session.IsActive)
 		}
 
 		log.Printf("SSE 스트림 종료 - 세션: %s", session.SessionID)

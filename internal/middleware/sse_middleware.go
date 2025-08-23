@@ -14,7 +14,7 @@ type SSESession struct {
 	SessionID   string
 	UserUUID    string
 	ChatbotUUID string
-	Channel     chan string
+	Channel     chan string   // 기존 채널 (클라이언트와의 통신용)
 	Done        chan struct{} // 종료 신호 전송용 채널
 	CreatedAt   time.Time
 	IsActive    bool
@@ -138,7 +138,7 @@ func (sm *SSEManager) DeleteSession(sessionID string) error {
 	return nil
 }
 
-// SendMessage 세션에 메시지 전송
+// SendMessage 세션에 메시지 전송 (기존 메서드, 호환성 유지)
 func (sm *SSEManager) SendMessage(sessionID, message string) error {
 	sm.mutex.RLock()
 	session, exists := sm.sessions[sessionID]
