@@ -12,6 +12,7 @@ import (
 type WordBookmarkResponse struct {
 	UUID      string `json:"uuid"`
 	Word      string `json:"word"`
+	Meaning   string `json:"meaning"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -48,6 +49,7 @@ func FindByUserUUIDWordBookmark(c *fiber.Ctx) error {
 		response = append(response, WordBookmarkResponse{
 			UUID:      bookmark.UUID.String(),
 			Word:      bookmark.Word,
+			Meaning:   bookmark.Meaning,
 			CreatedAt: bookmark.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}

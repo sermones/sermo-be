@@ -64,6 +64,7 @@ func FindByDateSentenceBookmark(c *fiber.Ctx) error {
 		response = append(response, SentenceBookmarkResponse{
 			UUID:      bookmark.UUID.String(),
 			Sentence:  bookmark.Sentence,
+			Meaning:   bookmark.Meaning,
 			CreatedAt: bookmark.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
