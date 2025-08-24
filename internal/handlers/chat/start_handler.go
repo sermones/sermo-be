@@ -114,7 +114,15 @@ func StartChat(c *fiber.Ctx) error {
 					continue
 				}
 
+				// 디버깅을 위한 상세 로그 추가
+				log.Printf("파싱된 메시지 타입: '%s'", baseMessage.Type)
+				log.Printf("원본 jsonData: '%s'", jsonData)
+				log.Printf("Type == 'user' 비교 결과: %t", baseMessage.Type == "user")
+				log.Printf("Type == 'onkeyboard' 비교 결과: %t", baseMessage.Type == "onkeyboard")
+				log.Printf("Type 길이: %d", len(baseMessage.Type))
+				log.Printf("Type 바이트: %v", []byte(baseMessage.Type))
 				// 사용자 메시지와 onkeyboard 이벤트를 봇 채널로 전달
+
 				if baseMessage.Type == "user" || baseMessage.Type == "onkeyboard" {
 					log.Printf("%s 이벤트를 봇 채널로 전달 - 세션: %s", baseMessage.Type, session.SessionID)
 					select {
