@@ -11,23 +11,31 @@ import (
 // AuthMiddleware JWT 토큰을 검증하는 미들웨어
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Authorization 헤더에서 토큰 추출
-		authHeader := c.Get("Authorization")
-		if authHeader == "" {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Authorization header is required",
-			})
+		var token string
+
+		// 1. 쿼리 파라미터에서 토큰 확인 (EventSource용)
+		if queryToken := c.Query("token"); queryToken != "" {
+			token = queryToken
+		} else {
+			// 2. Authorization 헤더에서 토큰 추출 (일반 HTTP 요청용)
+			authHeader := c.Get("Authorization")
+			if authHeader == "" {
+				return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Authorization header or token query parameter is required",
+				})
+			}
+
+			// Bearer 토큰 형식 확인
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid authorization format. Use 'Bearer <token>'",
+				})
+			}
+
+			// 토큰 추출
+			token = strings.TrimPrefix(authHeader, "Bearer ")
 		}
 
-		// Bearer 토큰 형식 확인
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid authorization format. Use 'Bearer <token>'",
-			})
-		}
-
-		// 토큰 추출
-		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
 			return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Token is required",
