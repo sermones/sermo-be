@@ -87,6 +87,14 @@ func AlarmMessageGeneate(openaiClient *openai.Client, db *gorm.DB, config AlarmM
 	}
 
 	// FCM 전송용 데이터 생성 및 데이터베이스 저장
+	// userStatuses가 비어있는 경우 안전하게 처리
+	var context string
+	if len(userStatuses) > 0 {
+		context = userStatuses[0].Context
+	} else {
+		context = "No specific context available"
+	}
+
 	alarmSchedule := &models.AlarmSchedule{
 		UserUUID:      config.UserUUID,
 		ChatbotUUID:   config.ChatbotUUID,
@@ -95,7 +103,7 @@ func AlarmMessageGeneate(openaiClient *openai.Client, db *gorm.DB, config AlarmM
 		Message:       alarmMessage,
 		SendTime:      sendTime,
 		Keywords:      keywordsJSON,
-		Context:       userStatuses[0].Context,
+		Context:       context,
 		Sended:        false,
 	}
 
@@ -163,16 +171,25 @@ func generatePersonalizedAlarmMessage(openaiClient *openai.Client, keywords []st
 
 	if err != nil {
 		// 실패 시 기본 메시지와 시간 반환
-		return fmt.Sprintf("Hi %s! Reminder: %s - %s", user.Nickname, userStatuses[0].Event, userStatuses[0].Context), time.Now().Add(1 * time.Hour)
+		if len(userStatuses) > 0 {
+			return fmt.Sprintf("Hi %s! Reminder: %s - %s", user.Nickname, userStatuses[0].Event, userStatuses[0].Context), time.Now().Add(1 * time.Hour)
+		}
+		return fmt.Sprintf("Hi %s! You have a scheduled reminder.", user.Nickname), time.Now().Add(1 * time.Hour)
 	}
 
 	// 1차 응답에서 메시지와 시간 파싱
-	initialMessage, sendTime := parseAIResponseWithTime(initialResponse.Message.Content, userStatuses[0])
+	var initialMessage string
+	var sendTime time.Time
 
-	// 2차: 1차 결과를 더 구체적이고 개인화된 메시지로 재생성
-	finalMessage := generateEnhancedAlarmMessage(openaiClient, initialMessage, userStatuses[0], chatbot, user, keywords)
-
-	return finalMessage, sendTime
+	if len(userStatuses) > 0 {
+		initialMessage, sendTime = parseAIResponseWithTime(initialResponse.Message.Content, userStatuses[0])
+		// 2차: 1차 결과를 더 구체적이고 개인화된 메시지로 재생성
+		finalMessage := generateEnhancedAlarmMessage(openaiClient, initialMessage, userStatuses[0], chatbot, user, keywords)
+		return finalMessage, sendTime
+	} else {
+		// userStatuses가 비어있는 경우 기본 메시지 반환
+		return initialResponse.Message.Content, time.Now().Add(1 * time.Hour)
+	}
 }
 
 // parseAIResponseWithTime AI 응답에서 메시지와 시간을 파싱
