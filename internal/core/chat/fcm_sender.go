@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"sermo-be/internal/config"
 	"sermo-be/internal/models"
 	"sermo-be/pkg/database"
 	"sermo-be/pkg/firebase"
@@ -53,9 +54,24 @@ func (fs *FCMSender) SendImmediateFCM(userUUID, message string) error {
 
 // SendImmediateFCMNotification 즉시 FCM 알람 전송 (패키지 레벨 함수)
 func SendImmediateFCMNotification(userUUID, message, chatbotUUID string) error {
-	// Firebase 클라이언트 생성 (임시로 빈 설정 사용)
-	// TODO: 설정을 전달받아서 생성하도록 수정 필요
-	firebaseClient, err := firebase.NewClient(nil)
+	// Firebase 클라이언트 생성을 위한 기본 설정
+	// TODO: 실제 환경에서는 설정을 전달받아서 생성하도록 수정 필요
+	config := &config.Config{
+		Firebase: config.FirebaseConfig{
+			ProjectID:           "sermo-project", // 기본값
+			PrivateKeyID:        "",
+			PrivateKey:          "",
+			ClientEmail:         "",
+			ClientID:            "",
+			AuthURI:             "",
+			TokenURI:            "",
+			AuthProviderCertURL: "",
+			ClientCertURL:       "",
+			UniverseDomain:      "",
+		},
+	}
+
+	firebaseClient, err := firebase.NewClient(config)
 	if err != nil {
 		return fmt.Errorf("Firebase 클라이언트 생성 실패: %w", err)
 	}
